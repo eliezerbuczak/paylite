@@ -1,0 +1,75 @@
+services:
+  app:
+    container_name: paylite-app
+    image: paylite-app
+    build:
+      dockerfile: dev.Dockerfile
+      args:
+        UID: 1000
+        GID: 1000
+    volumes:
+      - ./:/opt/www
+    ports:
+      - "9501:9501"
+    env_file:
+      - .env
+    working_dir: /opt/www
+    entrypoint: ["php", "/opt/www/bin/hyperf.php", "server:watch"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+      rabbitmq:
+        condition: service_healthy
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: paylite-postgres
+    environment:
+      POSTGRES_DB: ${DB_DATABASE:-paylite}
+      POSTGRES_USER: ${DB_USERNAME:-paylite}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-secret}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME:-paylite} -d ${DB_DATABASE:-paylite}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    container_name: paylite-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+
+  rabbitmq:
+    image: rabbitmq:3.13-management-alpine
+    container_name: paylite-rabbitmq
+    environment:
+      RABBITMQ_DEFAULT_USER: ${AMQP_USER:-guest}
+      RABBITMQ_DEFAULT_PASS: ${AMQP_PASSWORD:-guest}
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    volumes:
+      - rabbitmq-data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  postgres-data:
+  redis-data:
+  rabbitmq-data:
+
+networks:
+  default:
+    name: paylite
