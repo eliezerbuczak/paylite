@@ -34,6 +34,7 @@
         "hyperf/testing": "~3.2.0",
         "hyperf/watcher": "^3.2",
         "mockery/mockery": "^1.0",
+        "phpmd/phpmd": "^2.15",
         "phpstan/phpstan": "^2.0",
         "swoole/ide-helper": "^6.0"
     },
@@ -70,8 +71,17 @@
             "rm -rf runtime/container"
         ],
         "test": "co-phpunit --prepend test/bootstrap.php --colors=always",
+        "test:coverage": "co-phpunit --prepend test/bootstrap.php --colors=always --coverage-text",
         "cs-fix": "php-cs-fixer fix $1",
+        "cs-check": "php-cs-fixer fix --dry-run --diff",
         "analyse": "phpstan analyse --memory-limit 300M",
+        "md": "phpmd app,config text phpmd.xml",
+        "quality": [
+            "@cs-check",
+            "@analyse",
+            "@md",
+            "@test"
+        ],
         "start": [
             "Composer\\Config::disableProcessTimeout",
             "php ./bin/hyperf.php start"

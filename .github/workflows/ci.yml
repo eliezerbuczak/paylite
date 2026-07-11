@@ -1,0 +1,58 @@
+name: CI
+
+on:
+  push:
+    branches: [master, develop]
+  pull_request:
+    branches: [master, develop]
+
+jobs:
+  quality:
+    name: Quality suite (lint, static analysis, tests)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Prepare environment
+        run: cp .env.example .env
+
+      # The app container runs as UID 1000; the runner checkout is owned by
+      # UID 1001, so the bind mount would be read-only for the container.
+      - name: Align workspace ownership with container user
+        run: sudo chown -R 1000:1000 .
+
+      - name: Build app image
+        run: docker compose build app
+
+      - name: Install dependencies
+        run: docker compose run --rm --no-deps --entrypoint composer app install --no-interaction --prefer-dist
+
+      - name: Start services
+        run: docker compose up -d
+
+      - name: Code style (php-cs-fixer)
+        run: docker compose exec -T app composer cs-check
+
+      - name: Static analysis (phpstan)
+        run: docker compose exec -T app composer analyse
+
+      - name: Mess detection (phpmd)
+        run: docker compose exec -T app composer md
+
+      - name: Tests (phpunit)
+        run: docker compose exec -T app composer test
+
+      - name: Shutdown
+        if: always()
+        run: docker compose down -v
+
+  docker-build:
+    name: Production image build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Build production image
+        run: docker build -t paylite:ci .

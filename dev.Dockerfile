@@ -21,13 +21,15 @@ ENV TIMEZONE=${timezone:-"America/Sao_Paulo"} \
     SCAN_CACHEABLE=(false)
 
 # Extensions required by the application stack (Postgres, Redis, bcmath for money math)
+# pcov provides the code coverage driver for PHPUnit
 RUN apk add --no-cache \
         bash \
         postgresql-client \
         php84-pdo_pgsql \
         php84-pgsql \
         php84-bcmath \
-        php84-pecl-redis
+        php84-pecl-redis \
+        php84-pecl-pcov
 
 # Make local user to avoid file permissions on runtime
 RUN addgroup -g ${GID} application && \

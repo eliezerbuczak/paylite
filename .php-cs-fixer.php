@@ -1,36 +1,14 @@
 <?php
 
 declare(strict_types=1);
-/**
- * This file is part of Hyperf.
- *
- * @link     https://www.hyperf.io
- * @document https://hyperf.wiki
- * @contact  group@hyperf.io
- * @license  https://github.com/hyperf/hyperf/blob/master/LICENSE
- */
-$header = <<<'EOF'
-This file is part of Hyperf.
+use PhpCsFixer\Config;
+use PhpCsFixer\Finder;
 
-@link     https://www.hyperf.io
-@document https://hyperf.wiki
-@contact  group@hyperf.io
-@license  https://github.com/hyperf/hyperf/blob/master/LICENSE
-EOF;
-
-return (new PhpCsFixer\Config())
+return (new Config())
     ->setRiskyAllowed(true)
     ->setRules([
-        '@PSR2' => true,
-        '@Symfony' => true,
-        '@DoctrineAnnotation' => true,
+        '@PSR12' => true,
         '@PhpCsFixer' => true,
-        'header_comment' => [
-            'comment_type' => 'PHPDoc',
-            'header' => $header,
-            'separate' => 'none',
-            'location' => 'after_declare_strict',
-        ],
         'array_syntax' => [
             'syntax' => 'short',
         ],
@@ -50,20 +28,11 @@ return (new PhpCsFixer\Config())
                 'declare',
             ],
         ],
-        'general_phpdoc_annotation_remove' => [
-            'annotations' => [
-                'author',
-            ],
-        ],
         'ordered_imports' => [
             'imports_order' => [
                 'class', 'function', 'const',
             ],
             'sort_algorithm' => 'alpha',
-        ],
-        'single_line_comment_style' => [
-            'comment_types' => [
-            ],
         ],
         'yoda_style' => [
             'always_move_variable' => false,
@@ -86,10 +55,9 @@ return (new PhpCsFixer\Config())
         'lowercase_static_reference' => true,
         'no_useless_else' => true,
         'no_unused_imports' => true,
-        'not_operator_with_successor_space' => true,
-        'not_operator_with_space' => false,
         'ordered_class_elements' => true,
         'php_unit_strict' => false,
+        'php_unit_method_casing' => false,
         'phpdoc_separation' => false,
         'single_quote' => true,
         'standardize_not_equals' => true,
@@ -97,10 +65,14 @@ return (new PhpCsFixer\Config())
         'single_line_empty_body' => false,
     ])
     ->setFinder(
-        PhpCsFixer\Finder::create()
-            ->exclude('public')
-            ->exclude('runtime')
-            ->exclude('vendor')
-            ->in(__DIR__)
+        Finder::create()
+            ->in([
+                __DIR__ . '/app',
+                __DIR__ . '/config',
+                __DIR__ . '/test',
+            ])
+            ->append([
+                __FILE__,
+            ])
     )
     ->setUsingCache(false);

@@ -1,7 +1,7 @@
 UID := $(shell id -u)
 GID := $(shell id -g)
 
-.PHONY: help install build up up-build down stop restart bash logs ps php composer test cs stan clean
+.PHONY: help install build up up-build down stop restart bash logs ps php composer test coverage cs cs-check stan md quality clean
 
 help:
 	@echo "Available commands:"
@@ -18,14 +18,18 @@ help:
 	@echo "  make php cmd=\"...\" - Run php inside the container"
 	@echo "  make composer cmd=\"...\" - Run composer inside the container"
 	@echo "  make test          - Run PHPUnit"
-	@echo "  make cs            - Run php-cs-fixer"
+	@echo "  make coverage      - Run PHPUnit with coverage report"
+	@echo "  make cs            - Run php-cs-fixer (fix)"
+	@echo "  make cs-check      - Run php-cs-fixer (dry-run)"
 	@echo "  make stan          - Run PHPStan"
+	@echo "  make md            - Run PHPMD"
+	@echo "  make quality       - Run cs-check + phpstan + phpmd + tests"
 	@echo "  make clean         - Stop and remove containers + volumes"
 
 install:
 	@test -f .env || cp .env.example .env
 	docker compose build app
-	docker compose run --rm --no-deps app composer install
+	docker compose run --rm --no-deps --entrypoint composer app install
 
 build:
 	docker compose build
@@ -61,13 +65,25 @@ composer:
 	docker compose exec app composer $(cmd)
 
 test:
-	docker compose exec app php vendor/bin/phpunit
+	docker compose exec app composer test
+
+coverage:
+	docker compose exec app composer test:coverage
 
 cs:
-	docker compose exec app php vendor/bin/php-cs-fixer fix
+	docker compose exec app composer cs-fix
+
+cs-check:
+	docker compose exec app composer cs-check
 
 stan:
-	docker compose exec app php vendor/bin/phpstan analyse
+	docker compose exec app composer analyse
+
+md:
+	docker compose exec app composer md
+
+quality:
+	docker compose exec app composer quality
 
 clean:
 	docker compose down -v
