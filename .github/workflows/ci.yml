@@ -40,6 +40,9 @@ jobs:
       - name: Mess detection (phpmd)
         run: docker compose exec -T app composer md
 
+      - name: Migrate test database
+        run: docker compose exec -T -e DB_DATABASE=paylite_test app php bin/hyperf.php migrate
+
       - name: Tests (phpunit)
         run: docker compose exec -T app composer test
 
