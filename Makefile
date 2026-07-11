@@ -1,7 +1,7 @@
 UID := $(shell id -u)
 GID := $(shell id -g)
 
-.PHONY: help install build up up-build down stop restart bash logs ps php composer test coverage cs cs-check stan md quality clean
+.PHONY: help install build up up-build down stop restart bash logs ps php composer test-db migrate migrate-rollback migrate-test test coverage cs cs-check stan md quality clean
 
 help:
 	@echo "Available commands:"
@@ -17,7 +17,10 @@ help:
 	@echo "  make ps            - List running services"
 	@echo "  make php cmd=\"...\" - Run php inside the container"
 	@echo "  make composer cmd=\"...\" - Run composer inside the container"
-	@echo "  make test          - Run PHPUnit"
+	@echo "  make test-db       - Create the paylite_test database if missing"
+	@echo "  make migrate       - Run migrations on the dev database"
+	@echo "  make migrate-test  - Run migrations on the test database"
+	@echo "  make test          - Run PHPUnit (migrates the test database first)"
 	@echo "  make coverage      - Run PHPUnit with coverage report"
 	@echo "  make cs            - Run php-cs-fixer (fix)"
 	@echo "  make cs-check      - Run php-cs-fixer (dry-run)"
@@ -64,7 +67,19 @@ php:
 composer:
 	docker compose exec app composer $(cmd)
 
-test:
+test-db:
+	docker compose exec postgres sh -c 'psql -U $${POSTGRES_USER:-paylite} -d $${POSTGRES_DB:-paylite} -tAc "SELECT 1 FROM pg_database WHERE datname = '"'"'$${POSTGRES_DB:-paylite}_test'"'"'" | grep -q 1 || createdb -U $${POSTGRES_USER:-paylite} $${POSTGRES_DB:-paylite}_test'
+
+migrate:
+	docker compose exec app php bin/hyperf.php migrate
+
+migrate-rollback:
+	docker compose exec app php bin/hyperf.php migrate:rollback
+
+migrate-test: test-db
+	docker compose exec -e DB_DATABASE=paylite_test app php bin/hyperf.php migrate
+
+test: migrate-test
 	docker compose exec app composer test
 
 coverage:

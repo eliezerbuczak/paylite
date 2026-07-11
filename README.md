@@ -1,63 +1,45 @@
-# Introduction
+# PayLite
 
-This is a skeleton application using the Hyperf framework. This application is meant to be used as a starting place for those looking to get their feet wet with Hyperf Framework.
+API RESTful de um sistema de pagamentos simples: usuários comuns e lojistas possuem
+carteira; usuários transferem dinheiro entre si e para lojistas; lojistas apenas
+recebem. Construída com PHP 8.2+ / [Hyperf 3.2](https://hyperf.io) (coroutines via
+Swoole), PostgreSQL, Redis e RabbitMQ.
 
-# Requirements
+> Documentação completa (endpoints, decisões de arquitetura, OpenAPI) em construção —
+> cada feature adiciona a sua parte.
 
-Hyperf has some requirements for the system environment, it can only run under Linux and Mac environment, but due to the development of Docker virtualization technology, Docker for Windows can also be used as the running environment under Windows.
+## Requisitos
 
-The various versions of Dockerfile have been prepared for you in the [hyperf/hyperf-docker](https://github.com/hyperf/hyperf-docker) project, or directly based on the already built [hyperf/hyperf](https://hub.docker.com/r/hyperf/hyperf) Image to run.
+- Docker + Docker Compose (todo o desenvolvimento acontece dentro dos containers)
+- `make`
 
-When you don't want to use Docker as the basis for your running environment, you need to make sure that your operating environment meets the following requirements:  
-
- - PHP >= 8.2
- - Any of the following network engines
-   - Swoole PHP extension >= 5.0，with `swoole.use_shortname` set to `Off` in your `php.ini`
-   - Swow PHP extension >= 1.3
- - JSON PHP extension
- - Pcntl PHP extension
- - OpenSSL PHP extension （If you need to use the HTTPS）
- - PDO PHP extension （If you need to use the MySQL Client）
- - Redis PHP extension （If you need to use the Redis Client）
- - Protobuf PHP extension （If you need to use the gRPC Server or Client）
-
-# Installation using Composer
-
-The easiest way to create a new Hyperf project is to use [Composer](https://getcomposer.org/). If you don't have it already installed, then please install as per [the documentation](https://getcomposer.org/download/).
-
-To create your new Hyperf project:
+## Como rodar
 
 ```bash
-composer create-project hyperf/hyperf-skeleton path/to/install
+make install   # primeira vez: builda a imagem e instala as dependências
+make up        # sobe app (porta 9501), postgres, redis e rabbitmq
+make migrate   # roda as migrations no banco de desenvolvimento
 ```
 
-If your development environment is based on Docker you can use the official Composer image to create a new Hyperf project:
+A API responde em `http://localhost:9501`.
+
+## Banco de dados
+
+- PostgreSQL com migrations em `migrations/` (`make migrate` / `make migrate-rollback`).
+- Os testes usam um banco dedicado (`paylite_test`), criado automaticamente; a suite
+  nunca toca o banco de desenvolvimento.
+
+## Testes e qualidade
 
 ```bash
-docker run --rm -it -v $(pwd):/app composer create-project --ignore-platform-reqs hyperf/hyperf-skeleton path/to/install
+make test      # PHPUnit (migra o banco de teste antes)
+make quality   # php-cs-fixer + PHPStan (nível 8) + PHPMD + testes
 ```
 
-# Getting started
+CI (GitHub Actions) roda a mesma suite de qualidade em todo push/PR para
+`master` e `develop`.
 
-Once installed, you can run the server immediately using the command below.
+## Fluxo de desenvolvimento
 
-```bash
-cd path/to/install
-php bin/hyperf.php start
-```
-
-Or if in a Docker based environment you can use the `docker-compose.yml` provided by the template:
-
-```bash
-cd path/to/install
-docker-compose up
-```
-
-This will start the cli-server on port `9501`, and bind it to all network interfaces. You can then visit the site at `http://localhost:9501/` which will bring up Hyperf default home page.
-
-## Hints
-
-- A nice tip is to rename `hyperf-skeleton` of files like `composer.json` and `docker-compose.yml` to your actual project name.
-- Take a look at `config/routes.php` and `app/Controller/IndexController.php` to see an example of a HTTP entrypoint.
-
-**Remember:** you can always replace the contents of this README.md file to something that fits your project description.
+Git Flow (`master`/`develop`/`feature/*`) com conventional commits, TDD e
+PRs revisadas antes do merge. Detalhes em `.claude/skills/`.
