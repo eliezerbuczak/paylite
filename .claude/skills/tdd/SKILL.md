@@ -25,11 +25,28 @@ pelo teste.
 
 ```
 test/
-├── Unit/       → puro, sem IO: services, value objects, policies. Mockery p/ dependências
-├── Feature/    → HTTP de ponta a ponta via Hyperf\Testing\TestCase ($this->get/post),
-│                 banco Postgres real do compose
-└── bootstrap.php
+├── Unit/         → puro, sem IO: use cases, value objects, entidades. Fakes/Mockery
+├── Integration/  → código da aplicação contra infra real, SEM HTTP: repositories
+│                  (adapters) contra Postgres, gateways contra fakes HTTP, breaker
+│                  contra Redis. Base: IntegrationTestCase
+├── Feature/      → HTTP de ponta a ponta via Hyperf\Testing\TestCase ($this->get/post)
+├── Factory/      → factories de dados de teste (models reais + Faker)
+└── bootstrap.php  (força o banco paylite_test — a suite nunca toca o banco dev)
 ```
+
+## Política de persistência (decisão de 2026-07-11)
+
+- **Persistência se testa no nível do adapter (repository)**, nunca contra tabela
+  solta: `$repository->save($deposit)` + asserção do efeito (aí sim, `Db::table()`
+  para conferir a linha gravada é legítimo — teste de adapter é tecnologicamente
+  acoplado por natureza).
+- **Proibido teste de schema/DDL cru** (inserts diretos esperando SQLSTATE): valida
+  tabela que a aplicação nunca toca por aquele caminho e duplica expectativa dos
+  testes de repository. As constraints do banco (CHECKs, uniques, FKs) são defesa
+  em camadas verificada indiretamente pelos testes de adapter e de feature.
+- Expectativa de negócio mora no nível mais alto que a expressa: "e-mail duplicado
+  rejeitado" = teste do use case (fake do port) + teste do adapter traduzindo a
+  violação em exceção de domínio — não teste de tabela.
 
 - Namespace `HyperfTest\Unit\...` e `HyperfTest\Feature\...` (autoload-dev já mapeia
   `HyperfTest\` → `test/`).
