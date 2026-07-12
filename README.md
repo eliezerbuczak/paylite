@@ -23,6 +23,30 @@ make migrate   # roda as migrations no banco de desenvolvimento
 
 A API responde em `http://localhost:9501`.
 
+## API
+
+### `POST /users` — cadastro de usuário
+
+Cria um usuário (comum ou lojista) com carteira zerada, na mesma transação.
+
+```bash
+curl -s -X POST http://localhost:9501/users \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "full_name": "Jane Doe",
+    "document": "529.982.247-25",
+    "email": "jane@example.com",
+    "password": "s3cret-pass",
+    "type": "common"
+  }'
+```
+
+Respostas: `201` + header `Location` (sucesso), `409` (`DUPLICATE_DOCUMENT` /
+`DUPLICATE_EMAIL`), `422` (`INVALID_DOCUMENT`, `INVALID_EMAIL`, `INVALID_USER_TYPE`,
+`INVALID_FULL_NAME`), `400` (`MALFORMED_REQUEST`). Erros seguem o envelope
+`{"error": {"code": "...", "message": "..."}}`. CPF/CNPJ são validados por dígitos
+verificadores; senha armazenada com argon2id e nunca retornada.
+
 ## Banco de dados
 
 - PostgreSQL com migrations em `migrations/` (`make migrate` / `make migrate-rollback`).

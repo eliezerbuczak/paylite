@@ -20,7 +20,18 @@ class AppExceptionHandler extends ExceptionHandler
     {
         $this->logger->error(sprintf('%s[%s] in %s', $throwable->getMessage(), $throwable->getLine(), $throwable->getFile()));
         $this->logger->error($throwable->getTraceAsString());
-        return $response->withHeader('Server', 'Hyperf')->withStatus(500)->withBody(new SwooleStream('Internal Server Error.'));
+
+        $body = json_encode([
+            'error' => [
+                'code' => 'INTERNAL_ERROR',
+                'message' => 'An unexpected error occurred.',
+            ],
+        ], JSON_THROW_ON_ERROR);
+
+        return $response
+            ->withStatus(500)
+            ->withHeader('Content-Type', 'application/json; charset=utf-8')
+            ->withBody(new SwooleStream($body));
     }
 
     /**
