@@ -18,7 +18,7 @@ final readonly class DepositMoneyService
     public function execute(DepositMoneyInput $input): Deposit
     {
         if (!$input->amount->isPositive()) {
-            throw new InvalidAmountException();
+            throw InvalidAmountException::notPositive();
         }
 
         return $this->wallets->deposit($input->userId, $input->amount);

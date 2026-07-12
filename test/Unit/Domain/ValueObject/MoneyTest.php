@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace HyperfTest\Unit\Domain\ValueObject;
 
+use App\Domain\Exception\InvalidAmountException;
 use App\Domain\ValueObject\Money;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
@@ -55,6 +56,34 @@ class MoneyTest extends TestCase
     public function test_negative_amount_is_not_positive(): void
     {
         self::assertFalse(Money::fromDecimal(-10.0)->isPositive());
+    }
+
+    public function test_rejects_more_than_two_decimal_places_instead_of_rounding(): void
+    {
+        $this->expectException(InvalidAmountException::class);
+
+        Money::fromDecimal(10.001);
+    }
+
+    public function test_rejects_half_cents_instead_of_rounding_up(): void
+    {
+        $this->expectException(InvalidAmountException::class);
+
+        Money::fromDecimal(10.005);
+    }
+
+    public function test_rejects_amounts_beyond_the_maximum(): void
+    {
+        $this->expectException(InvalidAmountException::class);
+
+        Money::fromDecimal(1e15);
+    }
+
+    public function test_accepts_the_maximum_amount(): void
+    {
+        $money = Money::fromDecimal(100_000_000_000.0);
+
+        self::assertSame(10_000_000_000_000, $money->cents);
     }
 
     public function test_equal_amounts_are_equal(): void

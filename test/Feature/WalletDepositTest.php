@@ -67,6 +67,20 @@ class WalletDepositTest extends FeatureTestCase
         self::assertSame('INVALID_AMOUNT', $response->json()['error']['code']);
     }
 
+    public function test_rejects_value_with_more_than_two_decimal_places_with_422(): void
+    {
+        $wallet = WalletFactory::withBalance(0);
+
+        $response = $this->json("/wallets/{$wallet->user_id}/deposits", ['value' => 10.005]);
+
+        $response->assertStatus(422);
+        self::assertSame('INVALID_AMOUNT', $response->json()['error']['code']);
+        self::assertSame(
+            0,
+            (int) Db::table('wallets')->where('id', $wallet->id)->value('balance_cents')
+        );
+    }
+
     public function test_rejects_missing_or_non_numeric_value_with_400(): void
     {
         $wallet = WalletFactory::withBalance(0);
