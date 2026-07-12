@@ -1,0 +1,23 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Domain\Entity;
+
+use App\Domain\ValueObject\Document;
+use App\Domain\ValueObject\Email;
+use App\Domain\ValueObject\UserType;
+use DateTimeImmutable;
+
+final readonly class User
+{
+    public function __construct(
+        public int $id,
+        public string $fullName,
+        public Document $document,
+        public Email $email,
+        public UserType $type,
+        public DateTimeImmutable $createdAt,
+    ) {
+    }
+}
