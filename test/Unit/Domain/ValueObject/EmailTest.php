@@ -42,4 +42,16 @@ class EmailTest extends TestCase
 
         Email::fromString('');
     }
+
+    public function test_rejects_email_longer_than_the_rfc_5321_limit(): void
+    {
+        $oversized = str_repeat('a', 64) . '@'
+            . str_repeat('b', 63) . '.'
+            . str_repeat('c', 63) . '.'
+            . str_repeat('d', 59) . '.com';
+
+        $this->expectException(InvalidEmailException::class);
+
+        Email::fromString($oversized);
+    }
 }
