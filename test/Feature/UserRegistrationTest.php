@@ -79,6 +79,26 @@ class UserRegistrationTest extends FeatureTestCase
         self::assertSame('DUPLICATE_EMAIL', $response->json()['error']['code']);
     }
 
+    public function test_rejects_full_name_longer_than_255_characters_with_422(): void
+    {
+        $response = $this->json('/users', array_merge(self::VALID_PAYLOAD, [
+            'full_name' => str_repeat('a', 256),
+        ]));
+
+        $response->assertStatus(422);
+        self::assertSame('INVALID_FULL_NAME', $response->json()['error']['code']);
+    }
+
+    public function test_rejects_password_longer_than_128_characters_with_422(): void
+    {
+        $response = $this->json('/users', array_merge(self::VALID_PAYLOAD, [
+            'password' => str_repeat('a', 129),
+        ]));
+
+        $response->assertStatus(422);
+        self::assertSame('INVALID_PASSWORD', $response->json()['error']['code']);
+    }
+
     public function test_rejects_invalid_document_with_422(): void
     {
         $response = $this->json('/users', array_merge(self::VALID_PAYLOAD, [

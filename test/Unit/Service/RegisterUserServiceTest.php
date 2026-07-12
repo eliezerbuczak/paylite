@@ -8,6 +8,7 @@ use App\Domain\Entity\NewUser;
 use App\Domain\Entity\User;
 use App\Domain\Exception\InvalidDocumentException;
 use App\Domain\Exception\InvalidFullNameException;
+use App\Domain\Exception\InvalidPasswordException;
 use App\Domain\Repository\UserRepositoryInterface;
 use App\Domain\ValueObject\Document;
 use App\Domain\ValueObject\Email;
@@ -77,6 +78,30 @@ class RegisterUserServiceTest extends TestCase
         $this->expectException(InvalidFullNameException::class);
 
         $service->execute($this->input(fullName: '   '));
+    }
+
+    public function test_rejects_full_name_longer_than_255_characters(): void
+    {
+        $repository = Mockery::mock(UserRepositoryInterface::class);
+        $repository->shouldNotReceive('add');
+
+        $service = new RegisterUserService($repository);
+
+        $this->expectException(InvalidFullNameException::class);
+
+        $service->execute($this->input(fullName: str_repeat('a', 256)));
+    }
+
+    public function test_rejects_password_longer_than_128_characters(): void
+    {
+        $repository = Mockery::mock(UserRepositoryInterface::class);
+        $repository->shouldNotReceive('add');
+
+        $service = new RegisterUserService($repository);
+
+        $this->expectException(InvalidPasswordException::class);
+
+        $service->execute($this->input(password: str_repeat('a', 129)));
     }
 
     private function input(

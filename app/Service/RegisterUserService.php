@@ -7,6 +7,7 @@ namespace App\Service;
 use App\Domain\Entity\NewUser;
 use App\Domain\Entity\User;
 use App\Domain\Exception\InvalidFullNameException;
+use App\Domain\Exception\InvalidPasswordException;
 use App\Domain\Repository\UserRepositoryInterface;
 use App\Domain\ValueObject\Document;
 use App\Domain\ValueObject\Email;
@@ -16,6 +17,10 @@ use SensitiveParameter;
 
 final readonly class RegisterUserService
 {
+    private const MAX_FULL_NAME_LENGTH = 255;
+
+    private const MAX_PASSWORD_LENGTH = 128;
+
     public function __construct(private UserRepositoryInterface $users)
     {
     }
@@ -24,7 +29,15 @@ final readonly class RegisterUserService
     {
         $fullName = trim($input->fullName);
         if ($fullName === '') {
-            throw new InvalidFullNameException();
+            throw InvalidFullNameException::empty();
+        }
+
+        if (mb_strlen($fullName) > self::MAX_FULL_NAME_LENGTH) {
+            throw InvalidFullNameException::tooLong(self::MAX_FULL_NAME_LENGTH);
+        }
+
+        if (mb_strlen($input->password) > self::MAX_PASSWORD_LENGTH) {
+            throw InvalidPasswordException::tooLong(self::MAX_PASSWORD_LENGTH);
         }
 
         $newUser = new NewUser(
