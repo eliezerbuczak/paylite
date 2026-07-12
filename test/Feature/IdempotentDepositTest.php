@@ -78,6 +78,27 @@ class IdempotentDepositTest extends FeatureTestCase
         );
     }
 
+    public function test_distinct_keys_are_processed_as_distinct_operations(): void
+    {
+        $wallet = WalletFactory::withBalance(0);
+
+        $first = $this->json("/wallets/{$wallet->user_id}/deposits", ['value' => 50.0], [
+            'Idempotency-Key' => uniqid('idem-', true),
+        ]);
+        $second = $this->json("/wallets/{$wallet->user_id}/deposits", ['value' => 50.0], [
+            'Idempotency-Key' => uniqid('idem-', true),
+        ]);
+
+        $first->assertStatus(201);
+        $second->assertStatus(201);
+        self::assertNotSame($first->json()['id'], $second->json()['id']);
+
+        self::assertSame(
+            10000,
+            (int) Db::table('wallets')->where('id', $wallet->id)->value('balance_cents')
+        );
+    }
+
     public function test_processes_normally_without_the_header(): void
     {
         $wallet = WalletFactory::withBalance(0);
