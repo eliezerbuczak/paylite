@@ -4,14 +4,13 @@ declare(strict_types=1);
 
 namespace HyperfTest\Feature;
 
-use Hyperf\Testing\TestCase;
 use PHPUnit\Framework\Attributes\CoversNothing;
 
 /**
  * @internal
  */
 #[CoversNothing]
-class ExampleTest extends TestCase
+class ExampleTest extends FeatureTestCase
 {
     public function testExample(): void
     {
