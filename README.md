@@ -47,6 +47,40 @@ Respostas: `201` + header `Location` (sucesso), `409` (`DUPLICATE_DOCUMENT` /
 `{"error": {"code": "...", "message": "..."}}`. CPF/CNPJ são validados por dígitos
 verificadores; senha armazenada com argon2id e nunca retornada.
 
+### `POST /wallets/{userId}/deposits` — depósito em carteira
+
+Credita a carteira do usuário e registra o depósito, atomicamente. O `value` decimal
+é convertido para centavos na borda — dinheiro circula internamente como inteiro.
+
+```bash
+curl -s -X POST http://localhost:9501/wallets/1/deposits \
+  -H 'Content-Type: application/json' \
+  -d '{"value": 50.0}'
+```
+
+Respostas: `201` + header `Location` (sucesso), `404` (`USER_NOT_FOUND`),
+`422` (`INVALID_AMOUNT`), `400` (`MALFORMED_REQUEST`).
+
+### Idempotência (`Idempotency-Key`)
+
+Requisições `POST` aceitam o header opcional `Idempotency-Key` (UUID gerado pelo
+cliente). Com ele, um retry de rede recebe a resposta original gravada em vez de
+reprocessar — um depósito nunca é creditado duas vezes pelo mesmo key:
+
+```bash
+curl -s -X POST http://localhost:9501/wallets/1/deposits \
+  -H 'Content-Type: application/json' \
+  -H "Idempotency-Key: $(uuidgen)" \
+  -d '{"value": 50.0}'
+```
+
+- Chaves expiram em 24h (Redis).
+- Repetir a chave enquanto a requisição original ainda processa → `409`
+  (`IDEMPOTENT_REQUEST_IN_FLIGHT`).
+- Falhas de negócio (ex.: `422`) também são gravadas e reapresentadas — retry não
+  muda o resultado.
+- Sem o header, a requisição é processada normalmente, sem deduplicação.
+
 ## Banco de dados
 
 - PostgreSQL com migrations em `migrations/` (`make migrate` / `make migrate-rollback`).
