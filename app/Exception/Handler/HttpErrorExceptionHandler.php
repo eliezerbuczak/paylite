@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Exception\Handler;
 
 use App\Domain\Exception\HttpErrorInterface;
+use App\Exception\ErrorEnvelope;
 use Hyperf\ExceptionHandler\ExceptionHandler;
 use Hyperf\HttpMessage\Stream\SwooleStream;
 use Psr\Http\Message\ResponseInterface;
@@ -20,12 +21,10 @@ final class HttpErrorExceptionHandler extends ExceptionHandler
 
         $this->stopPropagation();
 
-        $body = json_encode([
-            'error' => [
-                'code' => $throwable->errorCode(),
-                'message' => $throwable->getMessage(),
-            ],
-        ], JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE);
+        $body = json_encode(
+            ErrorEnvelope::from($throwable),
+            JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE
+        );
 
         return $response
             ->withStatus($throwable->httpStatus())
