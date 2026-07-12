@@ -43,7 +43,9 @@ final class IdempotencyMiddleware implements MiddlewareInterface
         $redisKey = "idempotency:{$key}";
 
         if (!$this->claim($redisKey)) {
-            return $this->replay($redisKey);
+            return $this->replay($redisKey)
+                ->withHeader(self::HEADER, $key)
+                ->withHeader('Idempotent-Replayed', 'true');
         }
 
         try {
@@ -64,7 +66,7 @@ final class IdempotencyMiddleware implements MiddlewareInterface
         $body = json_decode((string) $response->getBody(), true);
         $this->remember($redisKey, $response->getStatusCode(), is_array($body) ? $body : []);
 
-        return $response;
+        return $response->withHeader(self::HEADER, $key);
     }
 
     private function claim(string $redisKey): bool

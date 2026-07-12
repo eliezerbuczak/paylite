@@ -74,6 +74,8 @@ curl -s -X POST http://localhost:9501/wallets/1/deposits \
   -d '{"value": 50.0}'
 ```
 
+- A resposta ecoa o header `Idempotency-Key`; replays trazem também
+  `Idempotent-Replayed: true` para distingui-los da resposta original.
 - Chaves expiram em 24h (Redis).
 - Repetir a chave enquanto a requisição original ainda processa → `409`
   (`IDEMPOTENT_REQUEST_IN_FLIGHT`).

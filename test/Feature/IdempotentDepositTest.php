@@ -32,6 +32,11 @@ class IdempotentDepositTest extends FeatureTestCase
         $second->assertStatus(201);
         self::assertSame($first->json()['id'], $second->json()['id']);
 
+        self::assertSame($key, $first->getHeaderLine('Idempotency-Key'));
+        self::assertSame('', $first->getHeaderLine('Idempotent-Replayed'));
+        self::assertSame($key, $second->getHeaderLine('Idempotency-Key'));
+        self::assertSame('true', $second->getHeaderLine('Idempotent-Replayed'));
+
         self::assertSame(
             5000,
             (int) Db::table('wallets')->where('id', $wallet->id)->value('balance_cents')
