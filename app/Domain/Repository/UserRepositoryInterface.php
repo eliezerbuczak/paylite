@@ -18,4 +18,6 @@ interface UserRepositoryInterface
      * @throws DuplicateEmailException
      */
     public function add(NewUser $newUser): User;
+
+    public function findById(int $id): ?User;
 }

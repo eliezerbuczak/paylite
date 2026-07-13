@@ -69,4 +69,9 @@ final readonly class Money
     {
         return $this->cents === $other->cents;
     }
+
+    public function isLessThan(self $other): bool
+    {
+        return $this->cents < $other->cents;
+    }
 }
