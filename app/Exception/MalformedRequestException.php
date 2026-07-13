@@ -14,6 +14,11 @@ final class MalformedRequestException extends InvalidArgumentException implement
         return new self("Field '{$field}' is required and must be a string.");
     }
 
+    public static function missingNumericField(string $field): self
+    {
+        return new self("Field '{$field}' is required and must be a number.");
+    }
+
     public function errorCode(): string
     {
         return 'MALFORMED_REQUEST';
