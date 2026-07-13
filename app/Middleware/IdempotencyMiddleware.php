@@ -51,14 +51,7 @@ final class IdempotencyMiddleware implements MiddlewareInterface
         try {
             $response = $handler->handle($request);
         } catch (Throwable $error) {
-            // Business failures are final: record them so a retry replays the
-            // same answer. Infrastructure failures release the key so the
-            // client can retry for real.
-            if ($error instanceof HttpErrorInterface) {
-                $this->remember($redisKey, $error->httpStatus(), ErrorEnvelope::from($error));
-            } else {
-                $this->redis->del($redisKey);
-            }
+            $this->recordFailure($redisKey, $error);
 
             throw $error;
         }
@@ -67,6 +60,22 @@ final class IdempotencyMiddleware implements MiddlewareInterface
         $this->remember($redisKey, $response->getStatusCode(), is_array($body) ? $body : []);
 
         return $response->withHeader(self::HEADER, $key);
+    }
+
+    /**
+     * Business failures are final: record them so a retry replays the same
+     * answer. Infrastructure failures release the key so the client can
+     * retry for real.
+     */
+    private function recordFailure(string $redisKey, Throwable $error): void
+    {
+        if ($error instanceof HttpErrorInterface) {
+            $this->remember($redisKey, $error->httpStatus(), ErrorEnvelope::from($error));
+
+            return;
+        }
+
+        $this->redis->del($redisKey);
     }
 
     private function claim(string $redisKey): bool
