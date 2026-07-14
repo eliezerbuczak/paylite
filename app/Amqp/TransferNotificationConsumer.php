@@ -15,7 +15,14 @@ use PhpAmqpLib\Wire\AMQPTable;
 #[Consumer(exchange: 'transfers', routingKey: 'transfer.completed', queue: 'transfer-notifications', nums: 1)]
 final class TransferNotificationConsumer extends ConsumerMessage
 {
+    protected string $exchange = 'transfers';
+
     protected string|Type $type = Type::DIRECT;
+
+    /** @var array<int, string>|string */
+    protected array|string $routingKey = 'transfer.completed';
+
+    protected ?string $queue = 'transfer-notifications';
 
     public function __construct(
         private readonly NotifyTransferHandler $handler,
