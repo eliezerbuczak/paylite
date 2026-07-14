@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Exception\Handler;
 
 use App\Domain\Exception\HttpErrorInterface;
+use App\Domain\Exception\RetryAfterAwareInterface;
 use App\Exception\ErrorEnvelope;
 use Hyperf\ExceptionHandler\ExceptionHandler;
 use Hyperf\HttpMessage\Stream\SwooleStream;
@@ -26,10 +27,16 @@ final class HttpErrorExceptionHandler extends ExceptionHandler
             JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE
         );
 
-        return $response
+        $response = $response
             ->withStatus($throwable->httpStatus())
             ->withHeader('Content-Type', 'application/json; charset=utf-8')
             ->withBody(new SwooleStream($body));
+
+        if ($throwable instanceof RetryAfterAwareInterface) {
+            $response = $response->withHeader('Retry-After', (string) $throwable->retryAfterSeconds());
+        }
+
+        return $response;
     }
 
     public function isValid(Throwable $throwable): bool
