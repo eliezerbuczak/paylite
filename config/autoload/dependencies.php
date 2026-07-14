@@ -9,6 +9,8 @@ use App\Gateway\NotifierFactory;
 use App\Gateway\TransferAuthorizerFactory;
 use App\Repository\UserRepository;
 use App\Repository\WalletRepository;
+use App\Service\TransferMoneyService;
+use App\Service\TransferMoneyServiceFactory;
 use App\Support\SleeperInterface;
 use App\Support\SystemClock;
 use App\Support\SystemSleeper;
@@ -19,6 +21,7 @@ return [
     WalletRepositoryInterface::class => WalletRepository::class,
     TransferAuthorizerInterface::class => TransferAuthorizerFactory::class,
     NotifierInterface::class => NotifierFactory::class,
+    TransferMoneyService::class => TransferMoneyServiceFactory::class,
     ClockInterface::class => SystemClock::class,
     SleeperInterface::class => SystemSleeper::class,
 ];

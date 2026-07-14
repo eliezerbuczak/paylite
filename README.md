@@ -124,7 +124,9 @@ Transferência concluída dispara um evento após o commit; um listener publica 
 mensagem no RabbitMQ (exchange `transfers`, fila `transfer-notifications`) e um
 consumer dedicado faz o `POST` no serviço externo de notificação — que é instável
 por contrato (responde `204` ou `504` aleatório). Falha de notificação **nunca**
-desfaz a transferência: o dinheiro já mudou de mãos; a mensagem é retentada.
+desfaz a transferência nem chega ao cliente: o evento é despachado por um dispatcher
+que loga e engole qualquer exceção de listener (o dinheiro já mudou de mãos — a
+resposta `201` é garantida), e a mensagem é retentada pelo consumer.
 
 - **Consumer idempotente**: entrega at-least-once pode duplicar mensagens (POST ok,
   ack perdido); uma chave `notified:{transfer_id}` no Redis garante um único envio.
