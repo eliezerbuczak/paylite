@@ -21,6 +21,7 @@ use App\Domain\ValueObject\Email;
 use App\Domain\ValueObject\Money;
 use App\Domain\ValueObject\UserType;
 use App\DTO\TransferMoneyInput;
+use App\Event\TransferCompleted;
 use App\Service\TransferMoneyService;
 use DateTimeImmutable;
 use Mockery;
@@ -28,6 +29,7 @@ use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
 use Mockery\MockInterface;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
+use Psr\EventDispatcher\EventDispatcherInterface;
 
 /**
  * @internal
@@ -55,10 +57,33 @@ class TransferMoneyServiceTest extends TestCase
             ->andReturn($expected);
         $authorizer = $this->authorizerAnswering(true);
 
-        $service = new TransferMoneyService($users, $wallets, $authorizer);
+        $service = new TransferMoneyService($users, $wallets, $authorizer, $this->dispatcherAllowingAnything());
         $transfer = $service->execute(new TransferMoneyInput(payerId: 4, payeeId: 15, amount: Money::fromDecimal(100.0)));
 
         self::assertSame($expected, $transfer);
+    }
+
+    public function test_dispatches_transfer_completed_event_after_transfer(): void
+    {
+        $expected = new Transfer(
+            id: 1,
+            payerId: 4,
+            payeeId: 15,
+            amount: Money::fromCents(10000),
+            createdAt: new DateTimeImmutable('2026-07-12 12:00:00'),
+        );
+        $users = $this->usersReturning(payer: $this->commonUser(4), payee: $this->merchantUser(15));
+        $wallets = Mockery::mock(WalletRepositoryInterface::class);
+        $wallets->shouldReceive('balanceOf')->with(4)->once()->andReturn(Money::fromCents(10000));
+        $wallets->shouldReceive('transfer')->once()->andReturn($expected);
+        $dispatcher = Mockery::mock(EventDispatcherInterface::class);
+        $dispatcher->shouldReceive('dispatch')
+            ->once()
+            ->withArgs(fn (object $event): bool => $event instanceof TransferCompleted && $event->transfer === $expected)
+            ->andReturnUsing(fn (object $event): object => $event);
+
+        $service = new TransferMoneyService($users, $wallets, $this->authorizerAnswering(true), $dispatcher);
+        $service->execute(new TransferMoneyInput(payerId: 4, payeeId: 15, amount: Money::fromDecimal(100.0)));
     }
 
     public function test_rejects_transfer_to_self_before_touching_any_port(): void
@@ -66,7 +91,7 @@ class TransferMoneyServiceTest extends TestCase
         $users = Mockery::mock(UserRepositoryInterface::class);
         $users->shouldNotReceive('findById');
 
-        $service = new TransferMoneyService($users, $this->untouchedWallets(), $this->untouchedAuthorizer());
+        $service = new TransferMoneyService($users, $this->untouchedWallets(), $this->untouchedAuthorizer(), $this->untouchedDispatcher());
 
         $this->expectException(SamePayerPayeeException::class);
 
@@ -78,7 +103,7 @@ class TransferMoneyServiceTest extends TestCase
         $users = Mockery::mock(UserRepositoryInterface::class);
         $users->shouldNotReceive('findById');
 
-        $service = new TransferMoneyService($users, $this->untouchedWallets(), $this->untouchedAuthorizer());
+        $service = new TransferMoneyService($users, $this->untouchedWallets(), $this->untouchedAuthorizer(), $this->untouchedDispatcher());
 
         $this->expectException(InvalidAmountException::class);
 
@@ -91,7 +116,7 @@ class TransferMoneyServiceTest extends TestCase
         $users->shouldReceive('findById')->with(4)->andReturnNull();
         $users->shouldReceive('findById')->with(15)->andReturn($this->merchantUser(15));
 
-        $service = new TransferMoneyService($users, $this->untouchedWallets(), $this->untouchedAuthorizer());
+        $service = new TransferMoneyService($users, $this->untouchedWallets(), $this->untouchedAuthorizer(), $this->untouchedDispatcher());
 
         $this->expectException(UserNotFoundException::class);
 
@@ -104,7 +129,7 @@ class TransferMoneyServiceTest extends TestCase
         $users->shouldReceive('findById')->with(4)->andReturn($this->commonUser(4));
         $users->shouldReceive('findById')->with(15)->andReturnNull();
 
-        $service = new TransferMoneyService($users, $this->untouchedWallets(), $this->untouchedAuthorizer());
+        $service = new TransferMoneyService($users, $this->untouchedWallets(), $this->untouchedAuthorizer(), $this->untouchedDispatcher());
 
         $this->expectException(UserNotFoundException::class);
 
@@ -115,7 +140,7 @@ class TransferMoneyServiceTest extends TestCase
     {
         $users = $this->usersReturning(payer: $this->merchantUser(4), payee: $this->commonUser(15));
 
-        $service = new TransferMoneyService($users, $this->untouchedWallets(), $this->untouchedAuthorizer());
+        $service = new TransferMoneyService($users, $this->untouchedWallets(), $this->untouchedAuthorizer(), $this->untouchedDispatcher());
 
         $this->expectException(MerchantCannotTransferException::class);
 
@@ -129,7 +154,7 @@ class TransferMoneyServiceTest extends TestCase
         $wallets->shouldReceive('balanceOf')->with(4)->once()->andReturn(Money::fromCents(9999));
         $wallets->shouldNotReceive('transfer');
 
-        $service = new TransferMoneyService($users, $wallets, $this->untouchedAuthorizer());
+        $service = new TransferMoneyService($users, $wallets, $this->untouchedAuthorizer(), $this->untouchedDispatcher());
 
         $this->expectException(InsufficientBalanceException::class);
 
@@ -143,7 +168,7 @@ class TransferMoneyServiceTest extends TestCase
         $wallets->shouldReceive('balanceOf')->with(4)->once()->andReturn(Money::fromCents(10000));
         $wallets->shouldNotReceive('transfer');
 
-        $service = new TransferMoneyService($users, $wallets, $this->authorizerAnswering(false));
+        $service = new TransferMoneyService($users, $wallets, $this->authorizerAnswering(false), $this->untouchedDispatcher());
 
         $this->expectException(TransferNotAuthorizedException::class);
 
@@ -159,7 +184,7 @@ class TransferMoneyServiceTest extends TestCase
         $authorizer = Mockery::mock(TransferAuthorizerInterface::class);
         $authorizer->shouldReceive('isAuthorized')->once()->andThrow(new AuthorizerUnavailableException());
 
-        $service = new TransferMoneyService($users, $wallets, $authorizer);
+        $service = new TransferMoneyService($users, $wallets, $authorizer, $this->untouchedDispatcher());
 
         $this->expectException(AuthorizerUnavailableException::class);
 
@@ -190,6 +215,22 @@ class TransferMoneyServiceTest extends TestCase
         $authorizer->shouldNotReceive('isAuthorized');
 
         return $authorizer;
+    }
+
+    private function untouchedDispatcher(): EventDispatcherInterface&MockInterface
+    {
+        $dispatcher = Mockery::mock(EventDispatcherInterface::class);
+        $dispatcher->shouldNotReceive('dispatch');
+
+        return $dispatcher;
+    }
+
+    private function dispatcherAllowingAnything(): EventDispatcherInterface&MockInterface
+    {
+        $dispatcher = Mockery::mock(EventDispatcherInterface::class);
+        $dispatcher->shouldReceive('dispatch')->andReturnUsing(fn (object $event): object => $event);
+
+        return $dispatcher;
     }
 
     private function authorizerAnswering(bool $authorized): MockInterface&TransferAuthorizerInterface
