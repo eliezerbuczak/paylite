@@ -43,6 +43,9 @@ jobs:
       - name: Migrate test database
         run: docker compose exec -T -e DB_DATABASE=paylite_test app php bin/hyperf.php migrate
 
+      - name: Create test vhost (rabbitmq)
+        run: docker compose exec -T rabbitmq sh -c 'rabbitmqctl list_vhosts --quiet | grep -qx testing || rabbitmqctl add_vhost testing; rabbitmqctl set_permissions -p testing "${RABBITMQ_DEFAULT_USER:-guest}" ".*" ".*" ".*"'
+
       - name: Tests (phpunit)
         run: docker compose exec -T app composer test
 
