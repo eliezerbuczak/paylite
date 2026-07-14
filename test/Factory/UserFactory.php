@@ -7,6 +7,8 @@ namespace HyperfTest\Factory;
 use App\Model\User;
 use Faker\Factory;
 use Faker\Generator;
+use Faker\Provider\pt_BR\Company;
+use Faker\Provider\pt_BR\Person;
 
 final class UserFactory
 {
@@ -36,7 +38,9 @@ final class UserFactory
         $user = new User();
         $user->fill(array_merge([
             'full_name' => $faker->name(),
-            'document' => $faker->unique()->numerify('###########'),
+            'document' => $type === 'merchant'
+                ? (new Company($faker))->cnpj(false)
+                : (new Person($faker))->cpf(false),
             'email' => $faker->unique()->safeEmail(),
             'password_hash' => password_hash('secret', PASSWORD_ARGON2ID),
             'type' => $type,

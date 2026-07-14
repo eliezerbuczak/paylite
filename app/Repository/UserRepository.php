@@ -47,6 +47,14 @@ final class UserRepository implements UserRepositoryInterface
         return $this->toEntity($model);
     }
 
+    public function findById(int $id): ?User
+    {
+        /** @var null|UserModel $model */
+        $model = UserModel::query()->find($id);
+
+        return $model === null ? null : $this->toEntity($model);
+    }
+
     private function translateUniqueViolation(QueryException $exception): DuplicateDocumentException|DuplicateEmailException|QueryException
     {
         $message = $exception->getMessage();

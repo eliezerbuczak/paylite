@@ -61,11 +61,46 @@ curl -s -X POST http://localhost:9501/wallets/1/deposits \
 Respostas: `201` + header `Location` (sucesso), `404` (`USER_NOT_FOUND`),
 `422` (`INVALID_AMOUNT`), `400` (`MALFORMED_REQUEST`).
 
+### `POST /transfer` — transferência entre usuários
+
+Transfere dinheiro do `payer` para o `payee`. Usuário comum transfere para qualquer
+um; lojista apenas recebe. A ordem do fluxo falha barato primeiro: validações locais
+e pré-checagem de saldo antes do autorizador externo; o débito/crédito acontece em
+transação com re-checagem de saldo sob lock de linha (locks adquiridos em ordem
+determinística para evitar deadlock).
+
+```bash
+curl -s -X POST http://localhost:9501/transfer \
+  -H 'Content-Type: application/json' \
+  -d '{"value": 100.0, "payer": 4, "payee": 15}'
+```
+
+Respostas:
+
+| HTTP | `error.code` | Quando |
+|---|---|---|
+| `201` + `Location` | — | transferência concluída |
+| `400` | `MALFORMED_REQUEST` | campos ausentes ou de tipo errado |
+| `403` | `MERCHANT_CANNOT_TRANSFER` | lojista tentando enviar |
+| `404` | `USER_NOT_FOUND` | payer ou payee inexistente |
+| `422` | `SAME_PAYER_PAYEE` / `INVALID_AMOUNT` / `INSUFFICIENT_BALANCE` / `TRANSFER_NOT_AUTHORIZED` | regra de negócio rejeitou |
+| `502` | `AUTHORIZER_UNAVAILABLE` | autorizador externo fora (timeout/5xx) |
+| `503` + `Retry-After` | `SERVICE_UNAVAILABLE` | circuit breaker aberto — nem tentamos |
+
+O autorizador externo é consultado fora da transação (fail-closed: negou ou falhou,
+não transfere) e fica atrás de um **circuit breaker** com estado compartilhado no
+Redis: após falhas consecutivas o circuito abre e as requisições seguintes recebem
+`503` imediato com `Retry-After`, em vez de pagar o timeout do serviço morto. Após o
+cooldown, uma única requisição de sonda testa o serviço (sucesso fecha o circuito;
+falha reabre). Thresholds configuráveis via `AUTHORIZER_BREAKER_FAILURE_THRESHOLD` e
+`AUTHORIZER_BREAKER_COOLDOWN_SECONDS`.
+
 ### Idempotência (`Idempotency-Key`)
 
 Requisições `POST` aceitam o header opcional `Idempotency-Key` (UUID gerado pelo
 cliente). Com ele, um retry de rede recebe a resposta original gravada em vez de
-reprocessar — um depósito nunca é creditado duas vezes pelo mesmo key:
+reprocessar — um depósito nunca é creditado, nem uma transferência executada, duas
+vezes pela mesma chave:
 
 ```bash
 curl -s -X POST http://localhost:9501/wallets/1/deposits \

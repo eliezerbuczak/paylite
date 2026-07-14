@@ -69,6 +69,23 @@ class UserRepositoryTest extends IntegrationTestCase
         $repository->add($this->newUser(document: '11222333000181'));
     }
 
+    public function test_finds_user_by_id(): void
+    {
+        $created = $this->repository()->add($this->newUser());
+
+        $found = $this->repository()->findById($created->id);
+
+        self::assertNotNull($found);
+        self::assertSame($created->id, $found->id);
+        self::assertSame('Jane Doe', $found->fullName);
+        self::assertSame(UserType::Common, $found->type);
+    }
+
+    public function test_returns_null_for_unknown_user_id(): void
+    {
+        self::assertNull($this->repository()->findById(999999));
+    }
+
     private function repository(): UserRepositoryInterface
     {
         return ApplicationContext::getContainer()->get(UserRepositoryInterface::class);
