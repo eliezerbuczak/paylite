@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Listener;
 
 use App\Amqp\TransferNotificationMessage;
-use App\Event\TransferCompleted;
+use App\Transfer\Application\Event\TransferCompleted;
 use Hyperf\Amqp\Producer;
 use Hyperf\Event\Contract\ListenerInterface;
 use Hyperf\Logger\LoggerFactory;

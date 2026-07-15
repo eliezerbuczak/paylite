@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace HyperfTest\Factory;
 
-use App\Model\Transfer;
+use App\Transfer\Infrastructure\Model\Transfer;
 
 final class TransferFactory
 {

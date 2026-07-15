@@ -1,7 +1,7 @@
 <?php
 
 declare(strict_types=1);
-use App\Controller\TransferController;
+use App\Transfer\Presentation\Http\TransferController;
 use App\User\Presentation\Http\UserController;
 use App\Wallet\Presentation\Http\WalletController;
 use Hyperf\HttpServer\Router\Router;

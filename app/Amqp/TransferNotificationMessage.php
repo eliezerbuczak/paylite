@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Amqp;
 
-use App\Domain\Entity\Transfer;
+use App\Transfer\Domain\Entity\Transfer;
 use Hyperf\Amqp\Message\ProducerMessage;
 use Hyperf\Amqp\Message\Type;
 
