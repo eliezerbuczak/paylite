@@ -5,27 +5,25 @@ declare(strict_types=1);
 namespace HyperfTest\Feature;
 
 use App\Notification\Infrastructure\Messaging\TransferNotificationConsumer;
-use App\Transfer\Application\Event\TransferCompleted;
+use App\Shared\Outbox\Application\PublishPendingOutboxEvents;
 use App\Transfer\Domain\Gateway\TransferAuthorizerInterface;
 use Hyperf\Amqp\ConnectionFactory;
 use Hyperf\Amqp\Consumer;
 use Hyperf\Context\ApplicationContext;
+use Hyperf\DbConnection\Db;
 use Hyperf\Di\Container;
-use Hyperf\Event\ListenerData;
-use Hyperf\Event\ListenerProvider;
 use HyperfTest\Factory\UserFactory;
 use HyperfTest\Factory\WalletFactory;
 use HyperfTest\Support\FakeTransferAuthorizer;
 use PhpAmqpLib\Channel\AMQPChannel;
 use PhpAmqpLib\Message\AMQPMessage;
 use PHPUnit\Framework\Attributes\CoversNothing;
-use Psr\EventDispatcher\ListenerProviderInterface;
-use ReflectionProperty;
-use RuntimeException;
 
 /**
- * End to end against the real broker: a successful POST /transfer must
- * leave the notification message in the consumer queue.
+ * End to end against the real broker: a successful POST /transfer records
+ * a pending outbox event, and running the outbox publisher is what
+ * actually leaves the notification message in the consumer queue — the
+ * request itself never touches RabbitMQ.
  *
  * @internal
  */
@@ -33,9 +31,6 @@ use RuntimeException;
 class TransferNotificationTest extends FeatureTestCase
 {
     private const QUEUE = 'transfer-notifications';
-
-    /** @var null|array<int, ListenerData> */
-    private ?array $originalListeners = null;
 
     protected function setUp(): void
     {
@@ -48,18 +43,7 @@ class TransferNotificationTest extends FeatureTestCase
         $this->channel()->queue_purge(self::QUEUE);
     }
 
-    protected function tearDown(): void
-    {
-        if ($this->originalListeners !== null) {
-            $provider = $this->listenerProvider();
-            $provider->listeners = $this->originalListeners;
-            $this->clearListenerCache($provider);
-            $this->originalListeners = null;
-        }
-        parent::tearDown();
-    }
-
-    public function test_successful_transfer_leaves_a_notification_in_the_queue(): void
+    public function test_successful_transfer_records_a_pending_outbox_event(): void
     {
         $payer = WalletFactory::withBalance(10000);
         $payee = WalletFactory::forUser(UserFactory::merchant());
@@ -71,39 +55,64 @@ class TransferNotificationTest extends FeatureTestCase
         ]);
 
         $response->assertStatus(201);
+        $transferId = $response->json()['id'];
+        self::assertSame(
+            'pending',
+            Db::table('outbox_events')->where('aggregate_id', $transferId)->value('status')
+        );
+    }
+
+    public function test_nothing_reaches_the_queue_before_the_outbox_publisher_runs(): void
+    {
+        $payer = WalletFactory::withBalance(10000);
+        $payee = WalletFactory::forUser(UserFactory::merchant());
+
+        $response = $this->json('/transfer', [
+            'value' => 100.0,
+            'payer' => $payer->user_id,
+            'payee' => $payee->user_id,
+        ]);
+
+        $response->assertStatus(201);
+        self::assertNull(
+            $this->waitForMessage(attempts: 5),
+            'the request must never publish to RabbitMQ directly — only the outbox publisher does'
+        );
+    }
+
+    public function test_running_the_publisher_delivers_the_recorded_event_to_the_queue(): void
+    {
+        $payer = WalletFactory::withBalance(10000);
+        $payee = WalletFactory::forUser(UserFactory::merchant());
+
+        $response = $this->json('/transfer', [
+            'value' => 100.0,
+            'payer' => $payer->user_id,
+            'payee' => $payee->user_id,
+        ]);
+        $response->assertStatus(201);
+
+        $this->runOutboxPublisher();
+
         $message = $this->waitForMessage();
-        self::assertNotNull($message, 'expected a notification message in the queue');
+        self::assertNotNull($message, 'expected a notification message in the queue after the publisher ran');
         self::assertSame([
             'transfer_id' => $response->json()['id'],
             'payer' => $payer->user_id,
             'payee' => $payee->user_id,
             'amount_cents' => 10000,
         ], json_decode($message->getBody(), true));
-    }
-
-    public function test_transfer_still_succeeds_when_a_listener_explodes(): void
-    {
-        $this->registerExplodingListener();
-        $payer = WalletFactory::withBalance(10000);
-        $payee = WalletFactory::forUser(UserFactory::merchant());
-
-        $response = $this->json('/transfer', [
-            'value' => 100.0,
-            'payer' => $payer->user_id,
-            'payee' => $payee->user_id,
-        ]);
-
-        $response->assertStatus(201);
-        self::assertNotNull(
-            $this->waitForMessage(),
-            'the publishing listener runs before the exploding one and still enqueues'
+        self::assertSame(
+            'published',
+            Db::table('outbox_events')->where('aggregate_id', $response->json()['id'])->value('status')
         );
     }
 
-    public function test_rejected_transfer_publishes_nothing(): void
+    public function test_rejected_transfer_records_no_outbox_event(): void
     {
         $payer = WalletFactory::withBalance(9999);
         $payee = WalletFactory::forUser(UserFactory::merchant());
+        $countBefore = (int) Db::table('outbox_events')->count();
 
         $response = $this->json('/transfer', [
             'value' => 100.0,
@@ -112,7 +121,14 @@ class TransferNotificationTest extends FeatureTestCase
         ]);
 
         $response->assertStatus(422);
+        self::assertSame($countBefore, (int) Db::table('outbox_events')->count());
+        $this->runOutboxPublisher();
         self::assertNull($this->waitForMessage(attempts: 5), 'no notification for a failed transfer');
+    }
+
+    private function runOutboxPublisher(): void
+    {
+        ApplicationContext::getContainer()->get(PublishPendingOutboxEvents::class)->run();
     }
 
     private function waitForMessage(int $attempts = 20): ?AMQPMessage
@@ -132,31 +148,6 @@ class TransferNotificationTest extends FeatureTestCase
         }
 
         return null;
-    }
-
-    private function registerExplodingListener(): void
-    {
-        $provider = $this->listenerProvider();
-        $this->originalListeners = $provider->listeners;
-        // Negative priority: the real publishing listener must run first,
-        // proving the explosion happens after the message is enqueued.
-        $provider->on(TransferCompleted::class, static function (): void {
-            throw new RuntimeException('listener exploded on purpose');
-        }, -100);
-        $this->clearListenerCache($provider);
-    }
-
-    private function listenerProvider(): ListenerProvider
-    {
-        $provider = ApplicationContext::getContainer()->get(ListenerProviderInterface::class);
-        \assert($provider instanceof ListenerProvider);
-
-        return $provider;
-    }
-
-    private function clearListenerCache(ListenerProvider $provider): void
-    {
-        (new ReflectionProperty(ListenerProvider::class, 'listenersCache'))->setValue($provider, []);
     }
 
     private function channel(): AMQPChannel
