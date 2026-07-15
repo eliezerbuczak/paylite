@@ -8,6 +8,32 @@ Swoole), PostgreSQL, Redis e RabbitMQ.
 > Documentação completa (endpoints, decisões de arquitetura, OpenAPI) em construção —
 > cada feature adiciona a sua parte.
 
+## Arquitetura
+
+A aplicação é um **monolito modular**: um único deploy e um único banco, com o código
+organizado por módulos de negócio em vez de camadas técnicas globais. Cada módulo em
+`app/` segue os mesmos princípios hexagonais — domínio e aplicação dependem apenas de
+interfaces (ports), a infraestrutura implementa os adapters e os controllers vivem na
+borda HTTP:
+
+```
+app/
+├── Shared/        # exceções base, envelope de erro, middleware de idempotência,
+│                  # circuit breaker, dispatcher seguro de eventos, clock
+├── User/          # cadastro: entidades, VOs (Document, Email), repo, controller
+├── Wallet/        # carteira e depósitos: Money, Deposit, repo, controller
+├── Transfer/      # transferência: use case, autorizador externo, repo, evento
+└── Notification/  # notificação assíncrona: notifier, consumer AMQP, retry/DLQ
+```
+
+Dentro de cada módulo: `Domain/` (entidades, VOs, exceções e ports), `Application/`
+(use cases, DTOs, eventos), `Infrastructure/` (persistência, gateways HTTP,
+mensageria, resiliência) e `Presentation/Http/` (controllers). As dependências entre
+módulos são acíclicas (User ← Wallet ← Transfer ← Notification, todos → Shared) e
+sempre pela interface pública do módulo dono — ex.: o caso de uso de transferência
+consome `WalletRepositoryInterface` do Wallet e o Notification reage ao evento
+`TransferCompleted` publicado pelo Transfer.
+
 ## Requisitos
 
 - Docker + Docker Compose (todo o desenvolvimento acontece dentro dos containers)
