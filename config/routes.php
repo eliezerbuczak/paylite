@@ -6,8 +6,6 @@ use App\User\Presentation\Http\UserController;
 use App\Wallet\Presentation\Http\WalletController;
 use Hyperf\HttpServer\Router\Router;
 
-Router::addRoute(['GET', 'POST', 'HEAD'], '/', 'App\Shared\Infrastructure\Http\IndexController@index');
-
 Router::post('/users', [UserController::class, 'store']);
 
 Router::post('/wallets/{userId:\d+}/deposits', [WalletController::class, 'deposit']);

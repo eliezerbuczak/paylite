@@ -28,16 +28,18 @@ app/
 
 Dentro de cada módulo: `Domain/` (entidades, VOs, exceções e ports), `Application/`
 (use cases, DTOs, eventos), `Infrastructure/` (persistência, gateways HTTP,
-mensageria, resiliência) e `Presentation/Http/` (controllers). As dependências entre
-módulos são acíclicas (User ← Wallet ← Transfer ← Notification, todos → Shared) e
-sempre pela interface pública do módulo dono — ex.: o caso de uso de transferência
-consome `WalletRepositoryInterface` do Wallet e o Notification reage ao evento
-`TransferCompleted` publicado pelo Transfer. Pela mesma regra, o cadastro de usuário
-provisiona a carteira inicial através de `WalletProvisionerInterface` (porta pública do
-Wallet), e a persistência da transferência move o dinheiro chamando
-`WalletRepositoryInterface::moveFunds()` em vez de travar e mutar as linhas de
-`wallets` diretamente — nenhum dos dois conhece o model de persistência interno
-do módulo Wallet.
+mensageria, resiliência) e `Presentation/Http/` (controllers). A regra não é um grafo
+estritamente acíclico entre módulos — é que toda dependência cruzada passa pela
+**interface pública ou pela exceção de domínio exportada do módulo dono**, nunca por
+Model, Entity ou Repository interno de outro módulo. Isso permite acoplamento nos dois
+sentidos entre um par de módulos sem violar a fronteira: o cadastro de usuário
+(`User`) provisiona a carteira inicial chamando `WalletProvisionerInterface` (porta
+pública do `Wallet`), e o próprio `Wallet` reaproveita `UserNotFoundException` do
+`User` para reportar carteira inexistente — nenhum dos dois lê Model ou Repository
+interno do outro. Da mesma forma, a persistência da transferência (`Transfer`) move
+o dinheiro chamando `WalletRepositoryInterface::moveFunds()` em vez de travar e mutar
+as linhas de `wallets` diretamente, e o `Notification` reage ao evento
+`TransferCompleted` publicado pelo `Transfer` sem conhecer sua camada de persistência.
 
 ## Requisitos
 

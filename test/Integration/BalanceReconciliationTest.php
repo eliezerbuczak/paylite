@@ -12,11 +12,12 @@ use HyperfTest\Factory\WalletFactory;
 use PHPUnit\Framework\Attributes\CoversNothing;
 
 /**
- * Audita o invariante do ledger: o saldo materializado em wallets.balance_cents
- * deve ser sempre reconstruível a partir dos fatos registrados
+ * Audita o saldo materializado: wallets.balance_cents deve ser sempre
+ * reconstruível a partir dos fatos registrados nas tabelas de origem
  * (depósitos + transferências recebidas − transferências enviadas).
  * Todo caminho de escrita futuro que credite ou debite carteira fica
- * automaticamente coberto por este teste.
+ * automaticamente coberto por este teste. Não há ledger/livro-razão no
+ * projeto — a reconciliação é feita direto contra deposits e transfers.
  *
  * @internal
  */
