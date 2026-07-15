@@ -4,9 +4,9 @@ declare(strict_types=1);
 
 namespace HyperfTest\Feature;
 
-use App\Amqp\TransferNotificationConsumer;
-use App\Domain\Gateway\TransferAuthorizerInterface;
-use App\Event\TransferCompleted;
+use App\Notification\Infrastructure\Messaging\TransferNotificationConsumer;
+use App\Transfer\Application\Event\TransferCompleted;
+use App\Transfer\Domain\Gateway\TransferAuthorizerInterface;
 use Hyperf\Amqp\ConnectionFactory;
 use Hyperf\Amqp\Consumer;
 use Hyperf\Context\ApplicationContext;

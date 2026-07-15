@@ -1,22 +1,28 @@
 <?php
 
 declare(strict_types=1);
-use App\Domain\Gateway\NotifierInterface;
-use App\Domain\Gateway\TransferAuthorizerInterface;
-use App\Domain\Repository\UserRepositoryInterface;
-use App\Domain\Repository\WalletRepositoryInterface;
-use App\Gateway\NotifierFactory;
-use App\Gateway\TransferAuthorizerFactory;
-use App\Repository\UserRepository;
-use App\Repository\WalletRepository;
-use App\Service\TransferMoneyService;
-use App\Service\TransferMoneyServiceFactory;
-use App\Support\SystemClock;
+use App\Notification\Domain\Gateway\NotifierInterface;
+use App\Notification\Infrastructure\Gateway\NotifierFactory;
+use App\Shared\Support\SystemClock;
+use App\Transfer\Application\Service\TransferMoneyService;
+use App\Transfer\Application\Service\TransferMoneyServiceFactory;
+use App\Transfer\Domain\Gateway\TransferAuthorizerInterface;
+use App\Transfer\Domain\Repository\TransferRepositoryInterface;
+use App\Transfer\Infrastructure\Gateway\TransferAuthorizerFactory;
+use App\Transfer\Infrastructure\Persistence\TransferRepository;
+use App\User\Domain\Repository\UserRepositoryInterface;
+use App\User\Infrastructure\Persistence\UserRepository;
+use App\Wallet\Application\Provisioning\WalletProvisionerInterface;
+use App\Wallet\Domain\Repository\WalletRepositoryInterface;
+use App\Wallet\Infrastructure\Persistence\WalletProvisioner;
+use App\Wallet\Infrastructure\Persistence\WalletRepository;
 use Psr\Clock\ClockInterface;
 
 return [
     UserRepositoryInterface::class => UserRepository::class,
     WalletRepositoryInterface::class => WalletRepository::class,
+    WalletProvisionerInterface::class => WalletProvisioner::class,
+    TransferRepositoryInterface::class => TransferRepository::class,
     TransferAuthorizerInterface::class => TransferAuthorizerFactory::class,
     NotifierInterface::class => NotifierFactory::class,
     TransferMoneyService::class => TransferMoneyServiceFactory::class,

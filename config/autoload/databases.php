@@ -22,9 +22,13 @@ return [
             'heartbeat' => -1,
             'max_idle_time' => (float) env('DB_MAX_IDLE_TIME', 60),
         ],
+        // `gen:model` reflects the whole database into a single path — it has
+        // no notion of modules, so this only avoids resurrecting the old
+        // app/Model layout by accident. Relocate any generated model into
+        // its owning module's Infrastructure/Model by hand.
         'commands' => [
             'gen:model' => [
-                'path' => 'app/Model',
+                'path' => 'app/Shared/Infrastructure/Model',
                 'force_casts' => true,
                 'inheritance' => 'Model',
             ],

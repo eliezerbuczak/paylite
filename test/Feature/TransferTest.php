@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace HyperfTest\Feature;
 
-use App\Domain\Gateway\TransferAuthorizerInterface;
-use App\Gateway\CircuitBreakerAuthorizer;
-use App\Resilience\CircuitBreaker;
-use App\Support\SystemClock;
+use App\Shared\Infrastructure\Resilience\CircuitBreaker;
+use App\Shared\Support\SystemClock;
+use App\Transfer\Domain\Gateway\TransferAuthorizerInterface;
+use App\Transfer\Infrastructure\Resilience\CircuitBreakerAuthorizer;
 use Hyperf\Context\ApplicationContext;
 use Hyperf\DbConnection\Db;
 use Hyperf\Di\Container;

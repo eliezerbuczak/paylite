@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace HyperfTest\Factory;
 
-use App\Model\User;
-use App\Model\Wallet;
+use App\User\Infrastructure\Model\User;
+use App\Wallet\Infrastructure\Model\Wallet;
 
 final class WalletFactory
 {

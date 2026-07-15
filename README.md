@@ -8,6 +8,39 @@ Swoole), PostgreSQL, Redis e RabbitMQ.
 > Documentação completa (endpoints, decisões de arquitetura, OpenAPI) em construção —
 > cada feature adiciona a sua parte.
 
+## Arquitetura
+
+A aplicação é um **monolito modular**: um único deploy e um único banco, com o código
+organizado por módulos de negócio em vez de camadas técnicas globais. Cada módulo em
+`app/` segue os mesmos princípios hexagonais — domínio e aplicação dependem apenas de
+interfaces (ports), a infraestrutura implementa os adapters e os controllers vivem na
+borda HTTP:
+
+```
+app/
+├── Shared/        # exceções base, envelope de erro, middleware de idempotência,
+│                  # circuit breaker, dispatcher seguro de eventos, clock
+├── User/          # cadastro: entidades, VOs (Document, Email), repo, controller
+├── Wallet/        # carteira e depósitos: Money, Deposit, repo, controller
+├── Transfer/      # transferência: use case, autorizador externo, repo, evento
+└── Notification/  # notificação assíncrona: notifier, consumer AMQP, retry/DLQ
+```
+
+Dentro de cada módulo: `Domain/` (entidades, VOs, exceções e ports), `Application/`
+(use cases, DTOs, eventos), `Infrastructure/` (persistência, gateways HTTP,
+mensageria, resiliência) e `Presentation/Http/` (controllers). A regra não é um grafo
+estritamente acíclico entre módulos — é que toda dependência cruzada passa pela
+**interface pública ou pela exceção de domínio exportada do módulo dono**, nunca por
+Model, Entity ou Repository interno de outro módulo. Isso permite acoplamento nos dois
+sentidos entre um par de módulos sem violar a fronteira: o cadastro de usuário
+(`User`) provisiona a carteira inicial chamando `WalletProvisionerInterface` (porta
+pública do `Wallet`), e o próprio `Wallet` reaproveita `UserNotFoundException` do
+`User` para reportar carteira inexistente — nenhum dos dois lê Model ou Repository
+interno do outro. Da mesma forma, a persistência da transferência (`Transfer`) move
+o dinheiro chamando `WalletRepositoryInterface::moveFunds()` em vez de travar e mutar
+as linhas de `wallets` diretamente, e o `Notification` reage ao evento
+`TransferCompleted` publicado pelo `Transfer` sem conhecer sua camada de persistência.
+
 ## Requisitos
 
 - Docker + Docker Compose (todo o desenvolvimento acontece dentro dos containers)

@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace HyperfTest\Factory;
 
-use App\Model\User;
+use App\User\Infrastructure\Model\User;
 use Faker\Factory;
 use Faker\Generator;
 use Faker\Provider\pt_BR\Company;

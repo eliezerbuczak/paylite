@@ -1,12 +1,10 @@
 <?php
 
 declare(strict_types=1);
-use App\Controller\TransferController;
-use App\Controller\UserController;
-use App\Controller\WalletController;
+use App\Transfer\Presentation\Http\TransferController;
+use App\User\Presentation\Http\UserController;
+use App\Wallet\Presentation\Http\WalletController;
 use Hyperf\HttpServer\Router\Router;
-
-Router::addRoute(['GET', 'POST', 'HEAD'], '/', 'App\Controller\IndexController@index');
 
 Router::post('/users', [UserController::class, 'store']);
 

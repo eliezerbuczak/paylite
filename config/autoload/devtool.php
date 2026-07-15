@@ -1,36 +1,42 @@
 <?php
 
 declare(strict_types=1);
+// Hyperf's `gen:*` scaffolding commands are not module-aware; this project
+// writes code by hand per the tdd/php-standards skills instead. These
+// namespaces exist only so an accidental `gen:*` run lands in a real,
+// existing directory instead of silently recreating the old flat layout
+// (app/Controller, app/Listener, ...) this codebase moved away from —
+// relocate any generated file into the right module by hand.
 return [
     'generator' => [
         'amqp' => [
             'consumer' => [
-                'namespace' => 'App\Amqp\Consumer',
+                'namespace' => 'App\Shared\Infrastructure\Messaging\Consumer',
             ],
             'producer' => [
-                'namespace' => 'App\Amqp\Producer',
+                'namespace' => 'App\Shared\Infrastructure\Messaging\Producer',
             ],
         ],
         'aspect' => [
-            'namespace' => 'App\Aspect',
+            'namespace' => 'App\Shared\Infrastructure\Aspect',
         ],
         'command' => [
-            'namespace' => 'App\Command',
+            'namespace' => 'App\Shared\Infrastructure\Command',
         ],
         'controller' => [
-            'namespace' => 'App\Controller',
+            'namespace' => 'App\Shared\Infrastructure\Http',
         ],
         'job' => [
-            'namespace' => 'App\Job',
+            'namespace' => 'App\Shared\Infrastructure\Job',
         ],
         'listener' => [
-            'namespace' => 'App\Listener',
+            'namespace' => 'App\Shared\Infrastructure\Listener',
         ],
         'middleware' => [
-            'namespace' => 'App\Middleware',
+            'namespace' => 'App\Shared\Infrastructure\Middleware',
         ],
         'Process' => [
-            'namespace' => 'App\Processes',
+            'namespace' => 'App\Shared\Infrastructure\Process',
         ],
     ],
 ];

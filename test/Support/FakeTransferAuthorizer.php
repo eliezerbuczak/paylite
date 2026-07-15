@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace HyperfTest\Support;
 
-use App\Domain\Exception\AuthorizerUnavailableException;
-use App\Domain\Gateway\TransferAuthorizerInterface;
+use App\Transfer\Domain\Exception\AuthorizerUnavailableException;
+use App\Transfer\Domain\Gateway\TransferAuthorizerInterface;
 use Closure;
 
 /**
