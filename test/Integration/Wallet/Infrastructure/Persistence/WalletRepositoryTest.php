@@ -40,6 +40,22 @@ class WalletRepositoryTest extends IntegrationTestCase
         );
     }
 
+    public function test_records_a_credit_ledger_entry_for_the_deposit(): void
+    {
+        $wallet = WalletFactory::withBalance(1000);
+
+        $deposit = $this->repository()->deposit($wallet->user_id, Money::fromCents(5000));
+        $entries = Db::table('ledger_entries')->where('wallet_id', $wallet->id);
+
+        self::assertSame(1, $entries->count());
+        self::assertSame('credit', $entries->value('direction'));
+        self::assertSame(5000, (int) $entries->value('amount_cents'));
+        self::assertSame(6000, (int) $entries->value('balance_after_cents'));
+        self::assertSame('deposit', $entries->value('entry_type'));
+        self::assertSame($deposit->id, (int) $entries->value('related_deposit_id'));
+        self::assertNull($entries->value('related_transfer_id'));
+    }
+
     public function test_accumulates_balance_across_deposits(): void
     {
         $wallet = WalletFactory::withBalance(0);

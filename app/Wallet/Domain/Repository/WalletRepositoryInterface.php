@@ -28,12 +28,16 @@ interface WalletRepositoryInterface
 
     /**
      * Debits the payer and credits the payee, atomically, re-checking the
-     * payer's balance under lock. Expected to run inside the caller's
-     * transaction — recording the fact that a transfer happened is the
-     * caller's responsibility, not this port's.
+     * payer's balance under lock.
      *
      * @throws UserNotFoundException when either wallet does not exist
      * @throws InsufficientBalanceException when the locked balance no longer covers the amount
      */
     public function moveFunds(int $payerId, int $payeeId, Money $amount): void;
+
+    /**
+     * Records the debit/credit ledger trail for a transfer moveFunds()
+     * already applied.
+     */
+    public function recordTransferLedger(int $payerId, int $payeeId, Money $amount, int $relatedTransferId): void;
 }

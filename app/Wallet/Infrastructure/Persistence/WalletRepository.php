@@ -8,8 +8,11 @@ use App\User\Domain\Exception\UserNotFoundException;
 use App\Wallet\Domain\Entity\Deposit;
 use App\Wallet\Domain\Exception\InsufficientBalanceException;
 use App\Wallet\Domain\Repository\WalletRepositoryInterface;
+use App\Wallet\Domain\ValueObject\LedgerEntryDirection;
+use App\Wallet\Domain\ValueObject\LedgerEntryType;
 use App\Wallet\Domain\ValueObject\Money;
 use App\Wallet\Infrastructure\Model\Deposit as DepositModel;
+use App\Wallet\Infrastructure\Model\LedgerEntry as LedgerEntryModel;
 use App\Wallet\Infrastructure\Model\Wallet as WalletModel;
 use DateTimeImmutable;
 use Hyperf\DbConnection\Db;
@@ -38,6 +41,16 @@ final class WalletRepository implements WalletRepositoryInterface
                 'amount_cents' => $amount->cents,
             ]);
             $deposit->save();
+
+            self::recordLedgerEntry(
+                walletId: $wallet->id,
+                direction: LedgerEntryDirection::Credit,
+                amountCents: $amount->cents,
+                balanceAfterCents: $wallet->balance_cents,
+                entryType: LedgerEntryType::Deposit,
+                relatedDepositId: $deposit->id,
+                relatedTransferId: null,
+            );
 
             return $deposit;
         });
@@ -76,6 +89,31 @@ final class WalletRepository implements WalletRepositoryInterface
         $payeeWallet->save();
     }
 
+    public function recordTransferLedger(int $payerId, int $payeeId, Money $amount, int $relatedTransferId): void
+    {
+        [$payerWallet, $payeeWallet] = self::lockWalletPair($payerId, $payeeId);
+
+        self::recordLedgerEntry(
+            walletId: $payerWallet->id,
+            direction: LedgerEntryDirection::Debit,
+            amountCents: $amount->cents,
+            balanceAfterCents: $payerWallet->balance_cents,
+            entryType: LedgerEntryType::Transfer,
+            relatedDepositId: null,
+            relatedTransferId: $relatedTransferId,
+        );
+
+        self::recordLedgerEntry(
+            walletId: $payeeWallet->id,
+            direction: LedgerEntryDirection::Credit,
+            amountCents: $amount->cents,
+            balanceAfterCents: $payeeWallet->balance_cents,
+            entryType: LedgerEntryType::Transfer,
+            relatedDepositId: null,
+            relatedTransferId: $relatedTransferId,
+        );
+    }
+
     /**
      * Locks both wallets in a deterministic order (wallet id) so two
      * concurrent transfers between the same pair cannot deadlock.
@@ -100,5 +138,27 @@ final class WalletRepository implements WalletRepositoryInterface
         }
 
         return [$payerWallet, $payeeWallet];
+    }
+
+    private static function recordLedgerEntry(
+        int $walletId,
+        LedgerEntryDirection $direction,
+        int $amountCents,
+        int $balanceAfterCents,
+        LedgerEntryType $entryType,
+        ?int $relatedDepositId,
+        ?int $relatedTransferId,
+    ): void {
+        $entry = new LedgerEntryModel();
+        $entry->fill([
+            'wallet_id' => $walletId,
+            'direction' => $direction->value,
+            'amount_cents' => $amountCents,
+            'balance_after_cents' => $balanceAfterCents,
+            'entry_type' => $entryType->value,
+            'related_deposit_id' => $relatedDepositId,
+            'related_transfer_id' => $relatedTransferId,
+        ]);
+        $entry->save();
     }
 }

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace HyperfTest\Integration;
 
+use App\Transfer\Domain\Repository\TransferRepositoryInterface;
 use App\Wallet\Domain\Repository\WalletRepositoryInterface;
 use App\Wallet\Domain\ValueObject\Money;
 use Hyperf\Context\ApplicationContext;
@@ -13,11 +14,10 @@ use PHPUnit\Framework\Attributes\CoversNothing;
 
 /**
  * Audita o saldo materializado: wallets.balance_cents deve ser sempre
- * reconstruível a partir dos fatos registrados nas tabelas de origem
- * (depósitos + transferências recebidas − transferências enviadas).
- * Todo caminho de escrita futuro que credite ou debite carteira fica
- * automaticamente coberto por este teste. Não há ledger/livro-razão no
- * projeto — a reconciliação é feita direto contra deposits e transfers.
+ * reconstruível a partir dos fatos registrados — tanto pelas tabelas de
+ * origem (deposits/transfers) quanto pela trilha auditável em
+ * ledger_entries. Todo caminho de escrita futuro que credite ou debite
+ * carteira fica automaticamente coberto por este teste.
  *
  * @internal
  */
@@ -41,9 +41,32 @@ class BalanceReconciliationTest extends IntegrationTestCase
         self::assertSame($this->reconciledBalance($walletB->id), $this->storedBalance($walletB->id));
     }
 
+    public function test_ledger_reconciles_with_the_materialized_balance_across_deposits_and_transfers(): void
+    {
+        $walletA = WalletFactory::withBalance(0);
+        $walletB = WalletFactory::withBalance(0);
+        $wallets = $this->repository();
+        $transfers = $this->transferRepository();
+
+        $wallets->deposit($walletA->user_id, Money::fromCents(5000));
+        $transfers->transfer($walletA->user_id, $walletB->user_id, Money::fromCents(2000));
+        $wallets->deposit($walletB->user_id, Money::fromCents(100));
+
+        self::assertSame(3000, $this->storedBalance($walletA->id));
+        self::assertSame(2100, $this->storedBalance($walletB->id));
+
+        self::assertSame($this->ledgerReconciledBalance($walletA->id), $this->storedBalance($walletA->id));
+        self::assertSame($this->ledgerReconciledBalance($walletB->id), $this->storedBalance($walletB->id));
+    }
+
     private function repository(): WalletRepositoryInterface
     {
         return ApplicationContext::getContainer()->get(WalletRepositoryInterface::class);
+    }
+
+    private function transferRepository(): TransferRepositoryInterface
+    {
+        return ApplicationContext::getContainer()->get(TransferRepositoryInterface::class);
     }
 
     private function storedBalance(int $walletId): int
@@ -60,5 +83,19 @@ class BalanceReconciliationTest extends IntegrationTestCase
         $sent = (int) Db::table('transfers')->where('payer_id', $userId)->sum('amount_cents');
 
         return $deposits + $received - $sent;
+    }
+
+    private function ledgerReconciledBalance(int $walletId): int
+    {
+        $credits = (int) Db::table('ledger_entries')
+            ->where('wallet_id', $walletId)
+            ->where('direction', 'credit')
+            ->sum('amount_cents');
+        $debits = (int) Db::table('ledger_entries')
+            ->where('wallet_id', $walletId)
+            ->where('direction', 'debit')
+            ->sum('amount_cents');
+
+        return $credits - $debits;
     }
 }
