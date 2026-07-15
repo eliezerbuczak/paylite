@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Listener;
 
 use App\Amqp\FailedTransferNotificationQueue;
+use App\Amqp\TransferNotificationRetryQueue;
 use Hyperf\Amqp\Consumer;
 use Hyperf\Event\Contract\ListenerInterface;
 use Hyperf\Framework\Event\MainWorkerStart;
@@ -13,7 +14,12 @@ use Psr\Container\ContainerInterface;
 use Psr\Log\LoggerInterface;
 use Throwable;
 
-final class DeclareNotificationDeadLetterListener implements ListenerInterface
+/**
+ * Declares the consumerless notification queues at boot: the retry parking
+ * queue (TTL + dead-letter back into the main queue) and the failed queue
+ * where exhausted notifications wait for inspection.
+ */
+final class DeclareNotificationQueuesListener implements ListenerInterface
 {
     private readonly LoggerInterface $logger;
 
@@ -42,11 +48,14 @@ final class DeclareNotificationDeadLetterListener implements ListenerInterface
     public function process(object $event): void
     {
         try {
-            $this->container->get(Consumer::class)->declare(new FailedTransferNotificationQueue());
+            $amqp = $this->container->get(Consumer::class);
+            $amqp->declare(new TransferNotificationRetryQueue());
+            $amqp->declare(new FailedTransferNotificationQueue());
         } catch (Throwable $exception) {
-            // A broker outage at boot must not crash the worker; the DLQ
-            // gets declared on the next restart, and drops just log until then.
-            $this->logger->error('failed to declare the notification dead-letter queue', [
+            // A broker outage at boot must not crash the worker; the queues
+            // get declared on the next restart, and retries/drops just log
+            // until then.
+            $this->logger->error('failed to declare the notification queues', [
                 'reason' => $exception->getMessage(),
             ]);
         }

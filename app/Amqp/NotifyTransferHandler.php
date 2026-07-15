@@ -13,17 +13,22 @@ use Psr\Log\LoggerInterface;
 
 final class NotifyTransferHandler
 {
+    public const MAX_ATTEMPTS = 10;
+
     private readonly LoggerInterface $logger;
 
     public function __construct(
         private readonly NotifierInterface $notifier,
-        private readonly NotificationRetryTracker $tracker,
+        private readonly NotificationDeduplicator $deduplicator,
         LoggerFactory $loggerFactory,
     ) {
         $this->logger = $loggerFactory->get('notification');
     }
 
-    public function handle(mixed $payload): NotificationOutcome
+    /**
+     * @param int $attempt delivery attempts the message has already burned
+     */
+    public function handle(mixed $payload, int $attempt): NotificationOutcome
     {
         $notification = TransferNotification::fromPayload($payload);
 
@@ -33,21 +38,19 @@ final class NotifyTransferHandler
             return NotificationOutcome::GiveUp;
         }
 
-        if (!$this->tracker->claim($notification->transferId)) {
+        if (!$this->deduplicator->claim($notification->transferId)) {
             return NotificationOutcome::Duplicate;
         }
 
         try {
             $this->notifier->notify($notification);
-        } catch (RetryAfterAwareInterface $circuitOpen) {
-            $this->tracker->release($notification->transferId);
-            $this->tracker->awaitSeconds($circuitOpen->retryAfterSeconds());
+        } catch (NotifierUnavailableException|RetryAfterAwareInterface) {
+            // A circuit-open rejection burns an attempt on purpose: during a
+            // long outage messages age into the dead-letter queue, where they
+            // can be replayed, instead of cycling through retries forever.
+            $this->deduplicator->release($notification->transferId);
 
-            return NotificationOutcome::RetryLater;
-        } catch (NotifierUnavailableException) {
-            $this->tracker->release($notification->transferId);
-
-            if (!$this->tracker->scheduleRetry($notification->transferId)) {
+            if ($attempt + 1 >= self::MAX_ATTEMPTS) {
                 $this->logger->error('transfer notification exhausted its retries', [
                     'transfer_id' => $notification->transferId,
                 ]);
@@ -57,8 +60,6 @@ final class NotifyTransferHandler
 
             return NotificationOutcome::RetryLater;
         }
-
-        $this->tracker->forget($notification->transferId);
 
         return NotificationOutcome::Delivered;
     }

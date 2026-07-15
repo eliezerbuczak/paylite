@@ -5,7 +5,8 @@ declare(strict_types=1);
 namespace HyperfTest\Unit\Listener;
 
 use App\Amqp\FailedTransferNotificationQueue;
-use App\Listener\DeclareNotificationDeadLetterListener;
+use App\Amqp\TransferNotificationRetryQueue;
+use App\Listener\DeclareNotificationQueuesListener;
 use Hyperf\Amqp\Consumer;
 use Hyperf\Framework\Event\MainWorkerStart;
 use Hyperf\Logger\LoggerFactory;
@@ -21,23 +22,24 @@ use stdClass;
 /**
  * @internal
  */
-#[CoversClass(DeclareNotificationDeadLetterListener::class)]
-class DeclareNotificationDeadLetterListenerTest extends TestCase
+#[CoversClass(DeclareNotificationQueuesListener::class)]
+class DeclareNotificationQueuesListenerTest extends TestCase
 {
     use MockeryPHPUnitIntegration;
 
     public function test_listens_to_main_worker_start(): void
     {
-        $listener = new DeclareNotificationDeadLetterListener($this->containerWith($this->untouchedAmqp()), $this->loggerFactory($this->untouchedLogger()));
+        $listener = new DeclareNotificationQueuesListener($this->containerWith($this->untouchedAmqp()), $this->loggerFactory($this->untouchedLogger()));
 
         self::assertSame([MainWorkerStart::class], $listener->listen());
     }
 
-    public function test_declares_the_dead_letter_queue_on_worker_start(): void
+    public function test_declares_the_retry_and_dead_letter_queues_on_worker_start(): void
     {
         $amqp = Mockery::mock(Consumer::class);
+        $amqp->shouldReceive('declare')->once()->with(Mockery::type(TransferNotificationRetryQueue::class));
         $amqp->shouldReceive('declare')->once()->with(Mockery::type(FailedTransferNotificationQueue::class));
-        $listener = new DeclareNotificationDeadLetterListener($this->containerWith($amqp), $this->loggerFactory($this->untouchedLogger()));
+        $listener = new DeclareNotificationQueuesListener($this->containerWith($amqp), $this->loggerFactory($this->untouchedLogger()));
 
         $listener->process(new stdClass());
     }
@@ -48,7 +50,7 @@ class DeclareNotificationDeadLetterListenerTest extends TestCase
         $amqp->shouldReceive('declare')->once()->andThrow(new RuntimeException('broker down'));
         $logger = Mockery::mock(LoggerInterface::class);
         $logger->shouldReceive('error')->once();
-        $listener = new DeclareNotificationDeadLetterListener($this->containerWith($amqp), $this->loggerFactory($logger));
+        $listener = new DeclareNotificationQueuesListener($this->containerWith($amqp), $this->loggerFactory($logger));
 
         $listener->process(new stdClass());
     }

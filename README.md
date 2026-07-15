@@ -131,12 +131,18 @@ resposta `201` é garantida), e a mensagem é retentada pelo consumer.
 - **Consumer idempotente**: entrega at-least-once pode duplicar mensagens (POST ok,
   ack perdido); uma chave `notified:{transfer_id}` no Redis garante um único envio.
 - **Circuit breaker no notificador** (mesma implementação do autorizador, estado no
-  Redis): circuito aberto → o consumer nem tenta o POST e devolve a mensagem à fila
-  após o cooldown informado. Thresholds via `NOTIFIER_BREAKER_FAILURE_THRESHOLD` e
+  Redis): circuito aberto → o consumer nem tenta o POST e estaciona a mensagem
+  direto na fila de retry. Thresholds via `NOTIFIER_BREAKER_FAILURE_THRESHOLD` e
   `NOTIFIER_BREAKER_COOLDOWN_SECONDS`.
-- **Retry com backoff exponencial** (2s, 4s, 8s, 16s); esgotadas as tentativas, a
-  mensagem é dead-lettered para `transfer-notifications.failed`, que fica retida
-  para inspeção (nada a consome).
+- **Retry via fila de estacionamento** (`transfer-notifications.retry`, sem
+  consumidor): a falha é republicada com o contador de tentativas no header
+  `x-attempts` e a mensagem original é ACKada; quando o TTL da fila (30s) expira,
+  o dead-letter devolve a mensagem à fila principal. O backoff acontece no broker —
+  o consumer nunca dorme, e uma notificação problemática não atrasa as demais.
+- **Envelhecimento para a DLQ**: após 10 tentativas (incluindo rejeições de circuito
+  aberto — uma indisponibilidade longa não acumula fila para sempre), a mensagem é
+  dead-lettered para `transfer-notifications.failed`, que fica retida para inspeção
+  e replay (nada a consome).
 - **Trade-off aceito no MVP**: se o processo morrer entre o commit e a publicação,
   a transferência existe mas o evento se perde (janela commit→publish). A correção
   canônica — Transactional Outbox — está registrada como melhoria futura.

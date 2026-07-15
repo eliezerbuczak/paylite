@@ -11,9 +11,7 @@ use App\Repository\UserRepository;
 use App\Repository\WalletRepository;
 use App\Service\TransferMoneyService;
 use App\Service\TransferMoneyServiceFactory;
-use App\Support\SleeperInterface;
 use App\Support\SystemClock;
-use App\Support\SystemSleeper;
 use Psr\Clock\ClockInterface;
 
 return [
@@ -23,5 +21,4 @@ return [
     NotifierInterface::class => NotifierFactory::class,
     TransferMoneyService::class => TransferMoneyServiceFactory::class,
     ClockInterface::class => SystemClock::class,
-    SleeperInterface::class => SystemSleeper::class,
 ];

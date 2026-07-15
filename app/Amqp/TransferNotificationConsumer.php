@@ -26,17 +26,19 @@ final class TransferNotificationConsumer extends ConsumerMessage
 
     public function __construct(
         private readonly NotifyTransferHandler $handler,
+        private readonly NotificationRetryScheduler $retryScheduler,
     ) {
     }
 
-    /**
-     * @SuppressWarnings("PHPMD.UnusedFormalParameter") required by ConsumerMessageInterface
-     */
     public function consumeMessage(mixed $data, AMQPMessage $message): Result
     {
-        return match ($this->handler->handle($data)) {
+        $attempt = $this->attemptOf($message);
+
+        return match ($this->handler->handle($data, $attempt)) {
             NotificationOutcome::Delivered, NotificationOutcome::Duplicate => Result::ACK,
-            NotificationOutcome::RetryLater => Result::REQUEUE,
+            NotificationOutcome::RetryLater => $this->retryScheduler->schedule($data, $attempt + 1)
+                ? Result::ACK
+                : Result::REQUEUE,
             NotificationOutcome::GiveUp => Result::DROP,
         };
     }
@@ -50,5 +52,22 @@ final class TransferNotificationConsumer extends ConsumerMessage
             'x-dead-letter-exchange' => 'transfers',
             'x-dead-letter-routing-key' => 'transfer.completed.failed',
         ]));
+    }
+
+    private function attemptOf(AMQPMessage $message): int
+    {
+        if (!$message->has('application_headers')) {
+            return 0;
+        }
+
+        $headers = $message->get('application_headers');
+
+        if (!$headers instanceof AMQPTable) {
+            return 0;
+        }
+
+        $attempt = $headers->getNativeData()['x-attempts'] ?? 0;
+
+        return is_int($attempt) ? $attempt : 0;
     }
 }
