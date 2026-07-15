@@ -40,10 +40,8 @@ final class TransferRepository implements TransferRepositoryInterface
             ]);
             $transfer->save();
 
-            // Recorded in the same transaction as the money movement: a
-            // crash after commit can no longer lose the notification, the
-            // way a post-commit event dispatch could — the fact and the
-            // event either both land or both roll back together.
+            $wallets->recordTransferLedger($payerId, $payeeId, $amount, $transfer->id);
+
             $outbox->record(
                 eventType: self::EVENT_TYPE_TRANSFER_COMPLETED,
                 aggregateType: self::AGGREGATE_TYPE_TRANSFER,

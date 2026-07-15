@@ -114,6 +114,30 @@ cooldown, uma única requisição de sonda testa o serviço (sucesso fecha o cir
 falha reabre). Thresholds configuráveis via `AUTHORIZER_BREAKER_FAILURE_THRESHOLD` e
 `AUTHORIZER_BREAKER_COOLDOWN_SECONDS`.
 
+### Ledger financeiro (trilha auditável)
+
+Depósito e transferência escrevem em duas tabelas com papéis diferentes, na mesma
+transação:
+
+- **`wallets.balance_cents`** — saldo materializado. É contra ele que toda validação
+  e todo lock transacional acontecem; é a fonte de verdade para "quanto essa carteira
+  tem agora".
+- **`ledger_entries`** — trilha auditável, append-only. Um depósito gera um lançamento
+  `credit`; uma transferência gera dois, um `debit` na carteira do payer e um `credit`
+  na do payee. Cada lançamento carrega `balance_after_cents` (o saldo materializado
+  logo após aquele lançamento) e referencia a origem (`related_deposit_id` ou
+  `related_transfer_id`).
+
+O ledger nunca é consultado para autorizar uma transferência — isso seria somar
+lançamentos para decidir se o saldo cobre o valor, o que é lento e, pior, uma segunda
+fonte de verdade competindo com o lock. A validação de saldo usa exclusivamente
+`wallets.balance_cents` sob `SELECT ... FOR UPDATE`; o ledger só é escrito depois que
+a decisão de mover dinheiro já foi tomada, como registro do que aconteceu. `deposits`
+e `transfers` continuam existindo — são o registro da operação de negócio em si (o que
+o cliente pediu); `ledger_entries` é a reconciliação contábil (o que aconteceu com o
+saldo por causa daquela operação). `wallets.balance_cents` deve sempre ser
+reconstruível somando os créditos e subtraindo os débitos do ledger de uma carteira.
+
 ### Idempotência (`Idempotency-Key`)
 
 Requisições `POST` aceitam o header opcional `Idempotency-Key` (UUID gerado pelo
