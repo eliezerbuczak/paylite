@@ -34,7 +34,10 @@ sempre pela interface pública do módulo dono — ex.: o caso de uso de transfe
 consome `WalletRepositoryInterface` do Wallet e o Notification reage ao evento
 `TransferCompleted` publicado pelo Transfer. Pela mesma regra, o cadastro de usuário
 provisiona a carteira inicial através de `WalletProvisionerInterface` (porta pública do
-Wallet), sem conhecer o model de persistência interno do módulo.
+Wallet), e a persistência da transferência move o dinheiro chamando
+`WalletRepositoryInterface::moveFunds()` em vez de travar e mutar as linhas de
+`wallets` diretamente — nenhum dos dois conhece o model de persistência interno
+do módulo Wallet.
 
 ## Requisitos
 
