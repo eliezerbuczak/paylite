@@ -61,6 +61,23 @@ class TransferRepositoryTest extends IntegrationTestCase
             ],
             json_decode((string) $outboxEvents->value('payload'), true)
         );
+
+        $payerEntries = Db::table('ledger_entries')->where('wallet_id', $payer->id);
+        self::assertSame(1, $payerEntries->count());
+        self::assertSame('debit', $payerEntries->value('direction'));
+        self::assertSame(7500, (int) $payerEntries->value('amount_cents'));
+        self::assertSame(2500, (int) $payerEntries->value('balance_after_cents'));
+        self::assertSame('transfer', $payerEntries->value('entry_type'));
+        self::assertNull($payerEntries->value('related_deposit_id'));
+        self::assertSame($transfer->id, (int) $payerEntries->value('related_transfer_id'));
+
+        $payeeEntries = Db::table('ledger_entries')->where('wallet_id', $payee->id);
+        self::assertSame(1, $payeeEntries->count());
+        self::assertSame('credit', $payeeEntries->value('direction'));
+        self::assertSame(7500, (int) $payeeEntries->value('amount_cents'));
+        self::assertSame(8000, (int) $payeeEntries->value('balance_after_cents'));
+        self::assertSame('transfer', $payeeEntries->value('entry_type'));
+        self::assertSame($transfer->id, (int) $payeeEntries->value('related_transfer_id'));
     }
 
     public function test_transfers_the_entire_balance(): void
@@ -101,6 +118,7 @@ class TransferRepositoryTest extends IntegrationTestCase
         );
         self::assertSame(0, (int) Db::table('transfers')->count());
         self::assertSame(0, (int) Db::table('outbox_events')->count(), 'a rolled-back transfer must not leave an outbox event behind');
+        self::assertSame(0, (int) Db::table('ledger_entries')->count(), 'a rolled-back transfer must not leave a ledger entry behind');
     }
 
     public function test_transfer_throws_user_not_found_when_payee_wallet_is_missing(): void
@@ -119,6 +137,7 @@ class TransferRepositoryTest extends IntegrationTestCase
         );
         self::assertSame(0, (int) Db::table('transfers')->count());
         self::assertSame(0, (int) Db::table('outbox_events')->count(), 'a rolled-back transfer must not leave an outbox event behind');
+        self::assertSame(0, (int) Db::table('ledger_entries')->count(), 'a rolled-back transfer must not leave a ledger entry behind');
     }
 
     public function test_transfer_throws_user_not_found_when_payer_wallet_is_missing(): void
