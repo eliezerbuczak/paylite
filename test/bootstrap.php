@@ -17,6 +17,12 @@ putenv('DB_DATABASE=paylite_test');
 $_ENV['DB_DATABASE'] = 'paylite_test';
 $_SERVER['DB_DATABASE'] = 'paylite_test';
 
+// Same isolation for RabbitMQ: the dev server actively consumes the queues
+// on the default vhost and would steal messages published by the suite.
+putenv('AMQP_VHOST=testing');
+$_ENV['AMQP_VHOST'] = 'testing';
+$_SERVER['AMQP_VHOST'] = 'testing';
+
 !defined('BASE_PATH') && define('BASE_PATH', dirname(__DIR__, 1));
 
 require BASE_PATH . '/vendor/autoload.php';

@@ -1,7 +1,7 @@
 UID := $(shell id -u)
 GID := $(shell id -g)
 
-.PHONY: help install build up up-build down stop restart bash logs ps php composer test-db migrate migrate-rollback migrate-test test coverage cs cs-check stan md quality clean
+.PHONY: help install build up up-build down stop restart bash logs ps php composer test-db test-vhost migrate migrate-rollback migrate-test test coverage cs cs-check stan md quality clean
 
 help:
 	@echo "Available commands:"
@@ -79,7 +79,10 @@ migrate-rollback:
 migrate-test: test-db
 	docker compose exec -e DB_DATABASE=paylite_test app php bin/hyperf.php migrate
 
-test: migrate-test
+test-vhost:
+	docker compose exec rabbitmq sh -c 'rabbitmqctl list_vhosts --quiet | grep -qx testing || rabbitmqctl add_vhost testing; rabbitmqctl set_permissions -p testing "$${RABBITMQ_DEFAULT_USER:-guest}" ".*" ".*" ".*"'
+
+test: migrate-test test-vhost
 	docker compose exec app composer test
 
 coverage:
@@ -97,7 +100,7 @@ stan:
 md:
 	docker compose exec app composer md
 
-quality:
+quality: test-vhost
 	docker compose exec app composer quality
 
 clean:
