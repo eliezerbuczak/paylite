@@ -2,8 +2,8 @@
 
 declare(strict_types=1);
 use App\Controller\TransferController;
-use App\Controller\WalletController;
 use App\User\Presentation\Http\UserController;
+use App\Wallet\Presentation\Http\WalletController;
 use Hyperf\HttpServer\Router\Router;
 
 Router::addRoute(['GET', 'POST', 'HEAD'], '/', 'App\Shared\Infrastructure\Http\IndexController@index');

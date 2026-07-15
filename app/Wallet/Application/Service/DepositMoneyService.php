@@ -2,12 +2,12 @@
 
 declare(strict_types=1);
 
-namespace App\Service;
+namespace App\Wallet\Application\Service;
 
-use App\Domain\Entity\Deposit;
-use App\Domain\Exception\InvalidAmountException;
-use App\Domain\Repository\WalletRepositoryInterface;
-use App\DTO\DepositMoneyInput;
+use App\Wallet\Application\DTO\DepositMoneyInput;
+use App\Wallet\Domain\Entity\Deposit;
+use App\Wallet\Domain\Exception\InvalidAmountException;
+use App\Wallet\Domain\Repository\WalletRepositoryInterface;
 
 final readonly class DepositMoneyService
 {

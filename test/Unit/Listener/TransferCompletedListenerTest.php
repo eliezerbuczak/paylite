@@ -6,9 +6,9 @@ namespace HyperfTest\Unit\Listener;
 
 use App\Amqp\TransferNotificationMessage;
 use App\Domain\Entity\Transfer;
-use App\Domain\ValueObject\Money;
 use App\Event\TransferCompleted;
 use App\Listener\TransferCompletedListener;
+use App\Wallet\Domain\ValueObject\Money;
 use DateTimeImmutable;
 use Hyperf\Amqp\Producer;
 use Hyperf\Logger\LoggerFactory;

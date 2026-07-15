@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace App\Domain\ValueObject;
+namespace App\Wallet\Domain\ValueObject;
 
-use App\Domain\Exception\InvalidAmountException;
+use App\Wallet\Domain\Exception\InvalidAmountException;
 
 /**
  * Monetary amount in integer cents (BRL, fixed scale 2). Never floats.

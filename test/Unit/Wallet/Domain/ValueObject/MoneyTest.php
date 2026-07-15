@@ -2,10 +2,10 @@
 
 declare(strict_types=1);
 
-namespace HyperfTest\Unit\Domain\ValueObject;
+namespace HyperfTest\Unit\Wallet\Domain\ValueObject;
 
-use App\Domain\Exception\InvalidAmountException;
-use App\Domain\ValueObject\Money;
+use App\Wallet\Domain\Exception\InvalidAmountException;
+use App\Wallet\Domain\ValueObject\Money;
 use PHPUnit\Framework\Attributes\CoversClass;
 use PHPUnit\Framework\TestCase;
 

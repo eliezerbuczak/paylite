@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\User\Infrastructure\Persistence;
 
-use App\Model\Wallet as WalletModel;
 use App\User\Domain\Entity\NewUser;
 use App\User\Domain\Entity\User;
 use App\User\Domain\Exception\DuplicateDocumentException;
@@ -14,6 +13,7 @@ use App\User\Domain\ValueObject\Document;
 use App\User\Domain\ValueObject\Email;
 use App\User\Domain\ValueObject\UserType;
 use App\User\Infrastructure\Model\User as UserModel;
+use App\Wallet\Infrastructure\Model\Wallet as WalletModel;
 use DateTimeImmutable;
 use Hyperf\Database\Exception\QueryException;
 use Hyperf\DbConnection\Db;

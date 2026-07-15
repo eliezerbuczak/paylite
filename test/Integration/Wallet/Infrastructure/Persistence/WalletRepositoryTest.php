@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
-namespace HyperfTest\Integration\Repository;
+namespace HyperfTest\Integration\Wallet\Infrastructure\Persistence;
 
-use App\Domain\Exception\InsufficientBalanceException;
-use App\Domain\Repository\WalletRepositoryInterface;
-use App\Domain\ValueObject\Money;
-use App\Repository\WalletRepository;
 use App\User\Domain\Exception\UserNotFoundException;
+use App\Wallet\Domain\Exception\InsufficientBalanceException;
+use App\Wallet\Domain\Repository\WalletRepositoryInterface;
+use App\Wallet\Domain\ValueObject\Money;
+use App\Wallet\Infrastructure\Persistence\WalletRepository;
 use Hyperf\Context\ApplicationContext;
 use Hyperf\DbConnection\Db;
 use HyperfTest\Factory\WalletFactory;

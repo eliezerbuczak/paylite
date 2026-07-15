@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
-namespace App\Controller;
+namespace App\Wallet\Presentation\Http;
 
-use App\Domain\Entity\Deposit;
-use App\Domain\ValueObject\Money;
-use App\DTO\DepositMoneyInput;
-use App\Service\DepositMoneyService;
 use App\Shared\Exception\MalformedRequestException;
+use App\Wallet\Application\DTO\DepositMoneyInput;
+use App\Wallet\Application\Service\DepositMoneyService;
+use App\Wallet\Domain\Entity\Deposit;
+use App\Wallet\Domain\ValueObject\Money;
 use Hyperf\HttpServer\Contract\RequestInterface;
 use Hyperf\HttpServer\Contract\ResponseInterface;
 use Psr\Http\Message\ResponseInterface as PsrResponse;

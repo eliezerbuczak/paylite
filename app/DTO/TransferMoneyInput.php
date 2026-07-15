@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\DTO;
 
-use App\Domain\ValueObject\Money;
+use App\Wallet\Domain\ValueObject\Money;
 
 final readonly class TransferMoneyInput
 {

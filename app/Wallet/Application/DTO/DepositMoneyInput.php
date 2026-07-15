@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace App\DTO;
+namespace App\Wallet\Application\DTO;
 
-use App\Domain\ValueObject\Money;
+use App\Wallet\Domain\ValueObject\Money;
 
 final readonly class DepositMoneyInput
 {

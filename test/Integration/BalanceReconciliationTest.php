@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace HyperfTest\Integration;
 
-use App\Domain\Repository\WalletRepositoryInterface;
-use App\Domain\ValueObject\Money;
+use App\Wallet\Domain\Repository\WalletRepositoryInterface;
+use App\Wallet\Domain\ValueObject\Money;
 use Hyperf\Context\ApplicationContext;
 use Hyperf\DbConnection\Db;
 use HyperfTest\Factory\WalletFactory;

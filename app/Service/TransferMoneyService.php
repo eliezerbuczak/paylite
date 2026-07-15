@@ -5,16 +5,16 @@ declare(strict_types=1);
 namespace App\Service;
 
 use App\Domain\Entity\Transfer;
-use App\Domain\Exception\InsufficientBalanceException;
-use App\Domain\Exception\InvalidAmountException;
 use App\Domain\Exception\SamePayerPayeeException;
 use App\Domain\Exception\TransferNotAuthorizedException;
 use App\Domain\Gateway\TransferAuthorizerInterface;
-use App\Domain\Repository\WalletRepositoryInterface;
 use App\DTO\TransferMoneyInput;
 use App\Event\TransferCompleted;
 use App\User\Domain\Exception\UserNotFoundException;
 use App\User\Domain\Repository\UserRepositoryInterface;
+use App\Wallet\Domain\Exception\InsufficientBalanceException;
+use App\Wallet\Domain\Exception\InvalidAmountException;
+use App\Wallet\Domain\Repository\WalletRepositoryInterface;
 use Psr\EventDispatcher\EventDispatcherInterface;
 
 /**

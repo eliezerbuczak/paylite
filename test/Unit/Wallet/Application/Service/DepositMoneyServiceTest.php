@@ -2,14 +2,14 @@
 
 declare(strict_types=1);
 
-namespace HyperfTest\Unit\Service;
+namespace HyperfTest\Unit\Wallet\Application\Service;
 
-use App\Domain\Entity\Deposit;
-use App\Domain\Exception\InvalidAmountException;
-use App\Domain\Repository\WalletRepositoryInterface;
-use App\Domain\ValueObject\Money;
-use App\DTO\DepositMoneyInput;
-use App\Service\DepositMoneyService;
+use App\Wallet\Application\DTO\DepositMoneyInput;
+use App\Wallet\Application\Service\DepositMoneyService;
+use App\Wallet\Domain\Entity\Deposit;
+use App\Wallet\Domain\Exception\InvalidAmountException;
+use App\Wallet\Domain\Repository\WalletRepositoryInterface;
+use App\Wallet\Domain\ValueObject\Money;
 use DateTimeImmutable;
 use Mockery;
 use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;

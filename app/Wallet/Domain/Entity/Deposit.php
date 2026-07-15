@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
-namespace App\Domain\Entity;
+namespace App\Wallet\Domain\Entity;
 
-use App\Domain\ValueObject\Money;
+use App\Wallet\Domain\ValueObject\Money;
 use DateTimeImmutable;
 
 final readonly class Deposit

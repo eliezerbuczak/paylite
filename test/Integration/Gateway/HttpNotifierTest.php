@@ -6,8 +6,8 @@ namespace HyperfTest\Integration\Gateway;
 
 use App\Domain\Exception\NotifierUnavailableException;
 use App\Domain\Gateway\TransferNotification;
-use App\Domain\ValueObject\Money;
 use App\Gateway\HttpNotifier;
+use App\Wallet\Domain\ValueObject\Money;
 use GuzzleHttp\Client;
 use GuzzleHttp\Exception\ConnectException;
 use GuzzleHttp\Handler\MockHandler;

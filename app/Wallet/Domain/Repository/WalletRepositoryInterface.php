@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
-namespace App\Domain\Repository;
+namespace App\Wallet\Domain\Repository;
 
-use App\Domain\Entity\Deposit;
 use App\Domain\Entity\Transfer;
-use App\Domain\Exception\InsufficientBalanceException;
-use App\Domain\ValueObject\Money;
 use App\User\Domain\Exception\UserNotFoundException;
+use App\Wallet\Domain\Entity\Deposit;
+use App\Wallet\Domain\Exception\InsufficientBalanceException;
+use App\Wallet\Domain\ValueObject\Money;
 
 interface WalletRepositoryInterface
 {

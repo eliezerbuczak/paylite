@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domain\Entity;
 
-use App\Domain\ValueObject\Money;
+use App\Wallet\Domain\ValueObject\Money;
 use DateTimeImmutable;
 
 final readonly class Transfer

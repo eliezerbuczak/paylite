@@ -2,17 +2,17 @@
 
 declare(strict_types=1);
 
-namespace App\Repository;
+namespace App\Wallet\Infrastructure\Persistence;
 
-use App\Domain\Entity\Deposit;
 use App\Domain\Entity\Transfer;
-use App\Domain\Exception\InsufficientBalanceException;
-use App\Domain\Repository\WalletRepositoryInterface;
-use App\Domain\ValueObject\Money;
-use App\Model\Deposit as DepositModel;
 use App\Model\Transfer as TransferModel;
-use App\Model\Wallet as WalletModel;
 use App\User\Domain\Exception\UserNotFoundException;
+use App\Wallet\Domain\Entity\Deposit;
+use App\Wallet\Domain\Exception\InsufficientBalanceException;
+use App\Wallet\Domain\Repository\WalletRepositoryInterface;
+use App\Wallet\Domain\ValueObject\Money;
+use App\Wallet\Infrastructure\Model\Deposit as DepositModel;
+use App\Wallet\Infrastructure\Model\Wallet as WalletModel;
 use DateTimeImmutable;
 use Hyperf\DbConnection\Db;
 

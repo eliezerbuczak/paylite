@@ -5,10 +5,10 @@ declare(strict_types=1);
 namespace App\Controller;
 
 use App\Domain\Entity\Transfer;
-use App\Domain\ValueObject\Money;
 use App\DTO\TransferMoneyInput;
 use App\Service\TransferMoneyService;
 use App\Shared\Exception\MalformedRequestException;
+use App\Wallet\Domain\ValueObject\Money;
 use Hyperf\HttpServer\Contract\RequestInterface;
 use Hyperf\HttpServer\Contract\ResponseInterface;
 use Psr\Http\Message\ResponseInterface as PsrResponse;
