@@ -1,8 +1,8 @@
 <?php
 
 declare(strict_types=1);
-use App\Domain\Gateway\NotifierInterface;
-use App\Gateway\NotifierFactory;
+use App\Notification\Domain\Gateway\NotifierInterface;
+use App\Notification\Infrastructure\Gateway\NotifierFactory;
 use App\Shared\Support\SystemClock;
 use App\Transfer\Application\Service\TransferMoneyService;
 use App\Transfer\Application\Service\TransferMoneyServiceFactory;

@@ -1,8 +1,8 @@
 <?php
 
 declare(strict_types=1);
-use App\Listener\DeclareNotificationQueuesListener;
-use App\Listener\TransferCompletedListener;
+use App\Notification\Application\EventListener\TransferCompletedListener;
+use App\Notification\Infrastructure\Messaging\DeclareNotificationQueuesListener;
 use Hyperf\ExceptionHandler\Listener\ErrorExceptionHandler;
 
 return [
