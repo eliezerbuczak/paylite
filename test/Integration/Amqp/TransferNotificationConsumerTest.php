@@ -12,7 +12,7 @@ use App\Amqp\TransferNotificationRetryMessage;
 use App\Domain\Exception\NotifierUnavailableException;
 use App\Domain\Gateway\NotifierInterface;
 use App\Domain\Gateway\TransferNotification;
-use App\Exception\ServiceUnavailableException;
+use App\Shared\Exception\ServiceUnavailableException;
 use Hyperf\Amqp\Producer;
 use Hyperf\Amqp\Result;
 use Hyperf\Context\ApplicationContext;

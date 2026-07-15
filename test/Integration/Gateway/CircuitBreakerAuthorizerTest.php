@@ -6,9 +6,9 @@ namespace HyperfTest\Integration\Gateway;
 
 use App\Domain\Exception\AuthorizerUnavailableException;
 use App\Domain\Gateway\TransferAuthorizerInterface;
-use App\Exception\ServiceUnavailableException;
 use App\Gateway\CircuitBreakerAuthorizer;
-use App\Resilience\CircuitBreaker;
+use App\Shared\Exception\ServiceUnavailableException;
+use App\Shared\Infrastructure\Resilience\CircuitBreaker;
 use Hyperf\Context\ApplicationContext;
 use Hyperf\Redis\Redis;
 use HyperfTest\Support\FakeClock;

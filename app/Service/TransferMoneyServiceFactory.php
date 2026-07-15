@@ -7,7 +7,7 @@ namespace App\Service;
 use App\Domain\Gateway\TransferAuthorizerInterface;
 use App\Domain\Repository\UserRepositoryInterface;
 use App\Domain\Repository\WalletRepositoryInterface;
-use App\Event\SafeEventDispatcher;
+use App\Shared\Infrastructure\Event\SafeEventDispatcher;
 use Hyperf\Logger\LoggerFactory;
 use Psr\Container\ContainerInterface;
 use Psr\EventDispatcher\EventDispatcherInterface;

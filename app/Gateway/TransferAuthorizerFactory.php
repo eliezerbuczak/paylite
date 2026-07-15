@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Gateway;
 
 use App\Domain\Gateway\TransferAuthorizerInterface;
-use App\Resilience\CircuitBreaker;
+use App\Shared\Infrastructure\Resilience\CircuitBreaker;
 use Hyperf\Contract\ConfigInterface;
 use Hyperf\Guzzle\ClientFactory;
 use Hyperf\Redis\Redis;

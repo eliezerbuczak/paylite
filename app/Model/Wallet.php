@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Model;
 
+use App\Shared\Infrastructure\Model\Model;
 use Carbon\Carbon;
 
 /**

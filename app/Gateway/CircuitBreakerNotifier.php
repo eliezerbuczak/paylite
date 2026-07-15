@@ -7,8 +7,8 @@ namespace App\Gateway;
 use App\Domain\Exception\NotifierUnavailableException;
 use App\Domain\Gateway\NotifierInterface;
 use App\Domain\Gateway\TransferNotification;
-use App\Exception\ServiceUnavailableException;
-use App\Resilience\CircuitBreaker;
+use App\Shared\Exception\ServiceUnavailableException;
+use App\Shared\Infrastructure\Resilience\CircuitBreaker;
 
 /**
  * Resilience decorator over the notifier port: when the breaker is open

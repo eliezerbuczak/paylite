@@ -6,8 +6,8 @@ namespace App\Gateway;
 
 use App\Domain\Exception\AuthorizerUnavailableException;
 use App\Domain\Gateway\TransferAuthorizerInterface;
-use App\Exception\ServiceUnavailableException;
-use App\Resilience\CircuitBreaker;
+use App\Shared\Exception\ServiceUnavailableException;
+use App\Shared\Infrastructure\Resilience\CircuitBreaker;
 
 /**
  * Resilience decorator over the authorizer port: when the breaker is open

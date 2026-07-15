@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Domain\Gateway;
 
 use App\Domain\Exception\NotifierUnavailableException;
-use App\Domain\Exception\RetryAfterAwareInterface;
+use App\Shared\Domain\Exception\RetryAfterAwareInterface;
 
 interface NotifierInterface
 {

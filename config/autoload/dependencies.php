@@ -11,7 +11,7 @@ use App\Repository\UserRepository;
 use App\Repository\WalletRepository;
 use App\Service\TransferMoneyService;
 use App\Service\TransferMoneyServiceFactory;
-use App\Support\SystemClock;
+use App\Shared\Support\SystemClock;
 use Psr\Clock\ClockInterface;
 
 return [

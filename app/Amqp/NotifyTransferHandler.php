@@ -5,9 +5,9 @@ declare(strict_types=1);
 namespace App\Amqp;
 
 use App\Domain\Exception\NotifierUnavailableException;
-use App\Domain\Exception\RetryAfterAwareInterface;
 use App\Domain\Gateway\NotifierInterface;
 use App\Domain\Gateway\TransferNotification;
+use App\Shared\Domain\Exception\RetryAfterAwareInterface;
 use Hyperf\Logger\LoggerFactory;
 use Psr\Log\LoggerInterface;
 

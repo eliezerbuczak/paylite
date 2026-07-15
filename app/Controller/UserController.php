@@ -6,8 +6,8 @@ namespace App\Controller;
 
 use App\Domain\Entity\User;
 use App\DTO\RegisterUserInput;
-use App\Exception\MalformedRequestException;
 use App\Service\RegisterUserService;
+use App\Shared\Exception\MalformedRequestException;
 use Hyperf\HttpServer\Contract\RequestInterface;
 use Hyperf\HttpServer\Contract\ResponseInterface;
 use Psr\Http\Message\ResponseInterface as PsrResponse;
