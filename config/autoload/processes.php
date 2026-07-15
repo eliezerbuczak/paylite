@@ -1,4 +1,8 @@
 <?php
 
 declare(strict_types=1);
-return [];
+use Hyperf\Crontab\Process\CrontabDispatcherProcess;
+
+return [
+    CrontabDispatcherProcess::class,
+];

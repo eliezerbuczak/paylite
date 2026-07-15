@@ -45,6 +45,22 @@ class TransferRepositoryTest extends IntegrationTestCase
             7500,
             (int) Db::table('transfers')->where('id', $transfer->id)->value('amount_cents')
         );
+
+        $outboxEvents = Db::table('outbox_events')->where('aggregate_id', $transfer->id);
+        self::assertSame(1, $outboxEvents->count(), 'expected a TransferCompleted outbox event recorded in the same transaction');
+        self::assertSame('TransferCompleted', $outboxEvents->value('event_type'));
+        self::assertSame('transfer', $outboxEvents->value('aggregate_type'));
+        self::assertSame('pending', $outboxEvents->value('status'));
+        self::assertEquals(
+            [
+                'transfer_id' => $transfer->id,
+                'payer_id' => $payer->user_id,
+                'payee_id' => $payee->user_id,
+                'amount_cents' => 7500,
+                'created_at' => $transfer->createdAt->format(DATE_ATOM),
+            ],
+            json_decode((string) $outboxEvents->value('payload'), true)
+        );
     }
 
     public function test_transfers_the_entire_balance(): void
@@ -84,6 +100,7 @@ class TransferRepositoryTest extends IntegrationTestCase
             (int) Db::table('wallets')->where('id', $payee->id)->value('balance_cents')
         );
         self::assertSame(0, (int) Db::table('transfers')->count());
+        self::assertSame(0, (int) Db::table('outbox_events')->count(), 'a rolled-back transfer must not leave an outbox event behind');
     }
 
     public function test_transfer_throws_user_not_found_when_payee_wallet_is_missing(): void
@@ -101,6 +118,7 @@ class TransferRepositoryTest extends IntegrationTestCase
             (int) Db::table('wallets')->where('id', $payer->id)->value('balance_cents')
         );
         self::assertSame(0, (int) Db::table('transfers')->count());
+        self::assertSame(0, (int) Db::table('outbox_events')->count(), 'a rolled-back transfer must not leave an outbox event behind');
     }
 
     public function test_transfer_throws_user_not_found_when_payer_wallet_is_missing(): void
