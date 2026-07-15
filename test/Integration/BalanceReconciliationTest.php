@@ -4,19 +4,20 @@ declare(strict_types=1);
 
 namespace HyperfTest\Integration;
 
-use App\Domain\Repository\WalletRepositoryInterface;
-use App\Domain\ValueObject\Money;
+use App\Wallet\Domain\Repository\WalletRepositoryInterface;
+use App\Wallet\Domain\ValueObject\Money;
 use Hyperf\Context\ApplicationContext;
 use Hyperf\DbConnection\Db;
 use HyperfTest\Factory\WalletFactory;
 use PHPUnit\Framework\Attributes\CoversNothing;
 
 /**
- * Audita o invariante do ledger: o saldo materializado em wallets.balance_cents
- * deve ser sempre reconstruível a partir dos fatos registrados
+ * Audita o saldo materializado: wallets.balance_cents deve ser sempre
+ * reconstruível a partir dos fatos registrados nas tabelas de origem
  * (depósitos + transferências recebidas − transferências enviadas).
  * Todo caminho de escrita futuro que credite ou debite carteira fica
- * automaticamente coberto por este teste.
+ * automaticamente coberto por este teste. Não há ledger/livro-razão no
+ * projeto — a reconciliação é feita direto contra deposits e transfers.
  *
  * @internal
  */

@@ -1,0 +1,35 @@
+<?php
+
+declare(strict_types=1);
+
+namespace App\Transfer\Application\Service;
+
+use App\Shared\Infrastructure\Event\SafeEventDispatcher;
+use App\Transfer\Domain\Gateway\TransferAuthorizerInterface;
+use App\Transfer\Domain\Repository\TransferRepositoryInterface;
+use App\User\Domain\Repository\UserRepositoryInterface;
+use App\Wallet\Domain\Repository\WalletRepositoryInterface;
+use Hyperf\Logger\LoggerFactory;
+use Psr\Container\ContainerInterface;
+use Psr\EventDispatcher\EventDispatcherInterface;
+
+/**
+ * Composes the transfer use case with the safe dispatcher: the event fires
+ * after the commit, so listener failures must never fail the response.
+ */
+final class TransferMoneyServiceFactory
+{
+    public function __invoke(ContainerInterface $container): TransferMoneyService
+    {
+        return new TransferMoneyService(
+            $container->get(UserRepositoryInterface::class),
+            $container->get(WalletRepositoryInterface::class),
+            $container->get(TransferRepositoryInterface::class),
+            $container->get(TransferAuthorizerInterface::class),
+            new SafeEventDispatcher(
+                $container->get(EventDispatcherInterface::class),
+                $container->get(LoggerFactory::class),
+            ),
+        );
+    }
+}

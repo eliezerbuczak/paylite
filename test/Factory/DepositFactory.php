@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace HyperfTest\Factory;
 
-use App\Model\Deposit;
+use App\Wallet\Infrastructure\Model\Deposit;
 
 final class DepositFactory
 {
