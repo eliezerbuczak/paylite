@@ -118,11 +118,43 @@ curl -s -X POST http://localhost:9501/wallets/1/deposits \
   muda o resultado.
 - Sem o header, a requisição é processada normalmente, sem deduplicação.
 
+### Notificação assíncrona
+
+Transferência concluída dispara um evento após o commit; um listener publica a
+mensagem no RabbitMQ (exchange `transfers`, fila `transfer-notifications`) e um
+consumer dedicado faz o `POST` no serviço externo de notificação — que é instável
+por contrato (responde `204` ou `504` aleatório). Falha de notificação **nunca**
+desfaz a transferência nem chega ao cliente: o evento é despachado por um dispatcher
+que loga e engole qualquer exceção de listener (o dinheiro já mudou de mãos — a
+resposta `201` é garantida), e a mensagem é retentada pelo consumer.
+
+- **Consumer idempotente**: entrega at-least-once pode duplicar mensagens (POST ok,
+  ack perdido); uma chave `notified:{transfer_id}` no Redis garante um único envio.
+- **Circuit breaker no notificador** (mesma implementação do autorizador, estado no
+  Redis): circuito aberto → o consumer nem tenta o POST e estaciona a mensagem
+  direto na fila de retry. Thresholds via `NOTIFIER_BREAKER_FAILURE_THRESHOLD` e
+  `NOTIFIER_BREAKER_COOLDOWN_SECONDS`.
+- **Retry via fila de estacionamento** (`transfer-notifications.retry`, sem
+  consumidor): a falha é republicada com o contador de tentativas no header
+  `x-attempts` e a mensagem original é ACKada; quando o TTL da fila (30s) expira,
+  o dead-letter devolve a mensagem à fila principal. O backoff acontece no broker —
+  o consumer nunca dorme, e uma notificação problemática não atrasa as demais.
+- **Envelhecimento para a DLQ**: após 10 tentativas (incluindo rejeições de circuito
+  aberto — uma indisponibilidade longa não acumula fila para sempre), a mensagem é
+  dead-lettered para `transfer-notifications.failed`, que fica retida para inspeção
+  e replay (nada a consome).
+- **Trade-off aceito no MVP**: se o processo morrer entre o commit e a publicação,
+  a transferência existe mas o evento se perde (janela commit→publish). A correção
+  canônica — Transactional Outbox — está registrada como melhoria futura.
+
 ## Banco de dados
 
 - PostgreSQL com migrations em `migrations/` (`make migrate` / `make migrate-rollback`).
 - Os testes usam um banco dedicado (`paylite_test`), criado automaticamente; a suite
   nunca toca o banco de desenvolvimento.
+- Pelo mesmo motivo, os testes usam um vhost dedicado no RabbitMQ (`testing`, criado
+  por `make test`): o servidor de dev consome as filas do vhost padrão e roubaria as
+  mensagens publicadas pela suite.
 
 ## Testes e qualidade
 

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Domain\Entity;
 
+use App\Domain\Exception\MerchantCannotTransferException;
 use App\Domain\ValueObject\Document;
 use App\Domain\ValueObject\Email;
 use App\Domain\ValueObject\UserType;
@@ -19,5 +20,12 @@ final readonly class User
         public UserType $type,
         public DateTimeImmutable $createdAt,
     ) {
+    }
+
+    public function assertCanTransfer(): void
+    {
+        if ($this->type === UserType::Merchant) {
+            throw new MerchantCannotTransferException();
+        }
     }
 }
