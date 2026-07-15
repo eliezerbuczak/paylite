@@ -165,9 +165,16 @@ janela entre o commit e a publicação em que o processo pode cair e perder a
 notificação: se a escrita na outbox falhar, a transferência inteira é revertida junto.
 
 - **Publicação assíncrona, fora da requisição HTTP**: `POST /transfer` nunca fala com
-  o RabbitMQ; quem publica é o comando `php bin/hyperf.php outbox:publish`, pensado
-  para rodar em intervalo curto (cron, supervisor, ou um processo dedicado) fora do
-  ciclo de request/response.
+  o RabbitMQ; quem publica é o comando `php bin/hyperf.php outbox:publish`. Ele roda
+  sozinho, agendado pelo crontab nativo do Hyperf (`config/autoload/crontab.php`,
+  processo dedicado `CrontabDispatcherProcess` registrado em
+  `config/autoload/processes.php`) a cada 5s por padrão (`OUTBOX_PUBLISH_CRON`,
+  formato de 6 campos com segundos) — nenhum cron/supervisor externo é necessário, o
+  agendamento sobe junto com a aplicação. `singleton` evita execuções sobrepostas se
+  um lote demorar mais que o intervalo; `onOneServer` (mutex no Redis) garante que só
+  uma réplica executa cada tick, caso haja mais de um servidor de aplicação.
+  `CRONTAB_ENABLE=false` desliga o agendamento (o comando continua disponível para
+  disparo manual).
 - **Entrega at-least-once**: se o processo do publisher morrer depois de publicar mas
   antes de marcar `published`, o evento é publicado de novo na próxima execução — por
   isso o consumer de notificação (abaixo) continua precisando ser idempotente; o
