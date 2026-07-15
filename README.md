@@ -19,27 +19,13 @@ borda HTTP:
 ```
 app/
 ├── Shared/        # exceções base, envelope de erro, middleware de idempotência,
-│                  # circuit breaker, dispatcher seguro de eventos, clock
+│                  # circuit breaker, clock, outbox transacional (Shared/Outbox)
 ├── User/          # cadastro: entidades, VOs (Document, Email), repo, controller
 ├── Wallet/        # carteira e depósitos: Money, Deposit, repo, controller
-├── Transfer/      # transferência: use case, autorizador externo, repo, evento
-└── Notification/  # notificação assíncrona: notifier, consumer AMQP, retry/DLQ
+├── Transfer/      # transferência: use case, autorizador externo, repo
+└── Notification/  # notificação assíncrona: notifier, consumer AMQP, retry/DLQ,
+                   # publisher da outbox
 ```
-
-Dentro de cada módulo: `Domain/` (entidades, VOs, exceções e ports), `Application/`
-(use cases, DTOs, eventos), `Infrastructure/` (persistência, gateways HTTP,
-mensageria, resiliência) e `Presentation/Http/` (controllers). A regra não é um grafo
-estritamente acíclico entre módulos — é que toda dependência cruzada passa pela
-**interface pública ou pela exceção de domínio exportada do módulo dono**, nunca por
-Model, Entity ou Repository interno de outro módulo. Isso permite acoplamento nos dois
-sentidos entre um par de módulos sem violar a fronteira: o cadastro de usuário
-(`User`) provisiona a carteira inicial chamando `WalletProvisionerInterface` (porta
-pública do `Wallet`), e o próprio `Wallet` reaproveita `UserNotFoundException` do
-`User` para reportar carteira inexistente — nenhum dos dois lê Model ou Repository
-interno do outro. Da mesma forma, a persistência da transferência (`Transfer`) move
-o dinheiro chamando `WalletRepositoryInterface::moveFunds()` em vez de travar e mutar
-as linhas de `wallets` diretamente, e o `Notification` reage ao evento
-`TransferCompleted` publicado pelo `Transfer` sem conhecer sua camada de persistência.
 
 ## Requisitos
 
@@ -153,14 +139,64 @@ curl -s -X POST http://localhost:9501/wallets/1/deposits \
 
 ### Notificação assíncrona
 
-Transferência concluída dispara um evento após o commit; um listener publica a
-mensagem no RabbitMQ (exchange `transfers`, fila `transfer-notifications`) e um
-consumer dedicado faz o `POST` no serviço externo de notificação — que é instável
-por contrato (responde `204` ou `504` aleatório). Falha de notificação **nunca**
-desfaz a transferência nem chega ao cliente: o evento é despachado por um dispatcher
-que loga e engole qualquer exceção de listener (o dinheiro já mudou de mãos — a
-resposta `201` é garantida), e a mensagem é retentada pelo consumer.
+A notificação de uma transferência concluída viaja em duas etapas independentes,
+ligadas por uma tabela (**transactional outbox**), não por um evento em memória:
 
+```
+POST /transfer
+  → move o dinheiro entre wallets
+  → grava outbox_events (event_type=TransferCompleted, status=pending)   ┐ mesma
+  → COMMIT                                                                ┘ transação
+
+outbox:publish (rodado periodicamente)
+  → reivindica um evento pending com available_at <= now()
+  → publica no RabbitMQ (exchange transfers, routing key transfer.completed)
+  → confirmado?  status=published
+  → falhou?      attempts++, last_error, reagenda available_at (backoff)
+  → esgotou attempts?  status=failed
+
+transfer-notifications (consumer, inalterado)
+  → POST no serviço externo de notificação, idempotente, com retry/DLQ próprios
+```
+
+O fato "a transferência aconteceu" é gravado em `outbox_events` **na mesma transação**
+que debita/credita as carteiras e cria a linha em `transfers` — não existe mais uma
+janela entre o commit e a publicação em que o processo pode cair e perder a
+notificação: se a escrita na outbox falhar, a transferência inteira é revertida junto.
+
+- **Publicação assíncrona, fora da requisição HTTP**: `POST /transfer` nunca fala com
+  o RabbitMQ; quem publica é o comando `php bin/hyperf.php outbox:publish`. Ele roda
+  sozinho, agendado pelo crontab nativo do Hyperf (`config/autoload/crontab.php`,
+  processo dedicado `CrontabDispatcherProcess` registrado em
+  `config/autoload/processes.php`) a cada 5s por padrão (`OUTBOX_PUBLISH_CRON`,
+  formato de 6 campos com segundos) — nenhum cron/supervisor externo é necessário, o
+  agendamento sobe junto com a aplicação. `singleton` evita execuções sobrepostas se
+  um lote demorar mais que o intervalo; `onOneServer` (mutex no Redis) garante que só
+  uma réplica executa cada tick, caso haja mais de um servidor de aplicação.
+  `CRONTAB_ENABLE=false` desliga o agendamento (o comando continua disponível para
+  disparo manual).
+- **Entrega at-least-once**: se o processo do publisher morrer depois de publicar mas
+  antes de marcar `published`, o evento é publicado de novo na próxima execução — por
+  isso o consumer de notificação (abaixo) continua precisando ser idempotente; o
+  outbox resolve a janela *commit → publish*, não substitui a idempotência do
+  consumer.
+- **Claim concorrente sem lock longo**: `outbox:publish` reivindica um evento por vez
+  com `SELECT ... FOR UPDATE SKIP LOCKED`, empurra seu `available_at` para uma janela
+  de lease de 30s e libera a transação **antes** de publicar — o lock nunca fica preso
+  durante a chamada de rede. Duas execuções concorrentes do comando não processam o
+  mesmo evento ao mesmo tempo; no pior caso (processo morre dentro da janela de
+  lease), o mesmo evento pode ser publicado duas vezes, absorvido pela idempotência
+  do consumer.
+- **Backoff e limite de tentativas configuráveis** (`config/autoload/outbox.php`):
+  tamanho do lote (`OUTBOX_PUBLISH_BATCH_SIZE`), tentativas máximas
+  (`OUTBOX_PUBLISH_MAX_ATTEMPTS`), backoff inicial e máximo em segundos
+  (`OUTBOX_PUBLISH_INITIAL_BACKOFF_SECONDS`, `OUTBOX_PUBLISH_MAX_BACKOFF_SECONDS`,
+  dobrando por tentativa até o teto). Esgotadas as tentativas, o evento vira
+  `status=failed` — fica retido em `outbox_events` para inspeção/replay manual, nunca
+  é descartado.
+- **Não é Event Sourcing**: a outbox guarda um único evento por escrita de negócio,
+  para entrega confiável a um consumidor externo — não é a fonte de verdade do estado
+  (`wallets`/`transfers` continuam sendo), nem histórico de todas as mudanças.
 - **Consumer idempotente**: entrega at-least-once pode duplicar mensagens (POST ok,
   ack perdido); uma chave `notified:{transfer_id}` no Redis garante um único envio.
 - **Circuit breaker no notificador** (mesma implementação do autorizador, estado no
@@ -176,9 +212,6 @@ resposta `201` é garantida), e a mensagem é retentada pelo consumer.
   aberto — uma indisponibilidade longa não acumula fila para sempre), a mensagem é
   dead-lettered para `transfer-notifications.failed`, que fica retida para inspeção
   e replay (nada a consome).
-- **Trade-off aceito no MVP**: se o processo morrer entre o commit e a publicação,
-  a transferência existe mas o evento se perde (janela commit→publish). A correção
-  canônica — Transactional Outbox — está registrada como melhoria futura.
 
 ## Banco de dados
 

@@ -17,6 +17,7 @@
         "hyperf/cache": "~3.2.0",
         "hyperf/command": "~3.2.0",
         "hyperf/config": "~3.2.0",
+        "hyperf/crontab": "~3.2.0",
         "hyperf/database-pgsql": "~3.2.0",
         "hyperf/db-connection": "~3.2.0",
         "hyperf/engine": "^2.10",

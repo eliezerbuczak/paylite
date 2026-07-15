@@ -22,6 +22,15 @@ services:
         condition: service_started
       rabbitmq:
         condition: service_healthy
+    healthcheck:
+      # 127.0.0.1, not localhost: musl's resolver returns ::1 first in this
+      # image, and Swoole only binds 0.0.0.0 (IPv4) — nc against "localhost"
+      # fails every time even though the server is up and serving fine.
+      test: ["CMD", "nc", "-z", "127.0.0.1", "9501"]
+      interval: 2s
+      timeout: 3s
+      retries: 20
+      start_period: 5s
 
   postgres:
     image: postgres:16-alpine

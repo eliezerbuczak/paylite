@@ -13,7 +13,7 @@ trait RefreshesDatabase
      */
     protected function refreshDatabase(): void
     {
-        foreach (['deposits', 'transfers', 'wallets', 'users'] as $table) {
+        foreach (['outbox_events', 'deposits', 'transfers', 'wallets', 'users'] as $table) {
             $exists = Db::table('pg_tables')
                 ->where('schemaname', 'public')
                 ->where('tablename', $table)

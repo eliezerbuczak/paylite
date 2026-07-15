@@ -29,7 +29,17 @@ jobs:
         run: docker compose run --rm --no-deps --entrypoint composer app install --no-interaction --prefer-dist
 
       - name: Start services
-        run: docker compose up -d
+        run: docker compose up -d --wait
+
+      - name: Dump app logs if it failed to become healthy
+        if: failure()
+        run: docker compose logs app
+
+      - name: Migrate dev database
+        # The scheduled outbox:publish crontab runs against the dev
+        # database for as long as the app container is up — without this
+        # it fails every tick for the whole job (table doesn't exist).
+        run: docker compose exec -T app php bin/hyperf.php migrate
 
       - name: Code style (php-cs-fixer)
         run: docker compose exec -T app composer cs-check

@@ -3,9 +3,13 @@
 declare(strict_types=1);
 use App\Notification\Domain\Gateway\NotifierInterface;
 use App\Notification\Infrastructure\Gateway\NotifierFactory;
+use App\Notification\Infrastructure\Messaging\TransferCompletedOutboxPublisher;
+use App\Shared\Outbox\Application\PublishPendingOutboxEvents;
+use App\Shared\Outbox\Application\PublishPendingOutboxEventsFactory;
+use App\Shared\Outbox\Domain\Gateway\OutboxEventPublisherInterface;
+use App\Shared\Outbox\Domain\Repository\OutboxEventRepositoryInterface;
+use App\Shared\Outbox\Infrastructure\Persistence\OutboxEventRepository;
 use App\Shared\Support\SystemClock;
-use App\Transfer\Application\Service\TransferMoneyService;
-use App\Transfer\Application\Service\TransferMoneyServiceFactory;
 use App\Transfer\Domain\Gateway\TransferAuthorizerInterface;
 use App\Transfer\Domain\Repository\TransferRepositoryInterface;
 use App\Transfer\Infrastructure\Gateway\TransferAuthorizerFactory;
@@ -23,8 +27,10 @@ return [
     WalletRepositoryInterface::class => WalletRepository::class,
     WalletProvisionerInterface::class => WalletProvisioner::class,
     TransferRepositoryInterface::class => TransferRepository::class,
+    OutboxEventRepositoryInterface::class => OutboxEventRepository::class,
+    OutboxEventPublisherInterface::class => TransferCompletedOutboxPublisher::class,
+    PublishPendingOutboxEvents::class => PublishPendingOutboxEventsFactory::class,
     TransferAuthorizerInterface::class => TransferAuthorizerFactory::class,
     NotifierInterface::class => NotifierFactory::class,
-    TransferMoneyService::class => TransferMoneyServiceFactory::class,
     ClockInterface::class => SystemClock::class,
 ];
