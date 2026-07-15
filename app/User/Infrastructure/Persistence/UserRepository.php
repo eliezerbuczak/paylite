@@ -13,17 +13,23 @@ use App\User\Domain\ValueObject\Document;
 use App\User\Domain\ValueObject\Email;
 use App\User\Domain\ValueObject\UserType;
 use App\User\Infrastructure\Model\User as UserModel;
-use App\Wallet\Infrastructure\Model\Wallet as WalletModel;
+use App\Wallet\Application\Provisioning\WalletProvisionerInterface;
 use DateTimeImmutable;
 use Hyperf\Database\Exception\QueryException;
 use Hyperf\DbConnection\Db;
 
 final class UserRepository implements UserRepositoryInterface
 {
+    public function __construct(
+        private readonly WalletProvisionerInterface $wallets,
+    ) {
+    }
+
     public function add(NewUser $newUser): User
     {
         try {
-            $model = Db::transaction(static function () use ($newUser): UserModel {
+            $wallets = $this->wallets;
+            $model = Db::transaction(static function () use ($newUser, $wallets): UserModel {
                 $model = new UserModel();
                 $model->fill([
                     'full_name' => $newUser->fullName,
@@ -34,9 +40,7 @@ final class UserRepository implements UserRepositoryInterface
                 ]);
                 $model->save();
 
-                $wallet = new WalletModel();
-                $wallet->fill(['user_id' => $model->id]);
-                $wallet->save();
+                $wallets->provisionForUser($model->id);
 
                 return $model;
             });

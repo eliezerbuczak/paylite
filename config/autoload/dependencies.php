@@ -12,13 +12,16 @@ use App\Transfer\Infrastructure\Gateway\TransferAuthorizerFactory;
 use App\Transfer\Infrastructure\Persistence\TransferRepository;
 use App\User\Domain\Repository\UserRepositoryInterface;
 use App\User\Infrastructure\Persistence\UserRepository;
+use App\Wallet\Application\Provisioning\WalletProvisionerInterface;
 use App\Wallet\Domain\Repository\WalletRepositoryInterface;
+use App\Wallet\Infrastructure\Persistence\WalletProvisioner;
 use App\Wallet\Infrastructure\Persistence\WalletRepository;
 use Psr\Clock\ClockInterface;
 
 return [
     UserRepositoryInterface::class => UserRepository::class,
     WalletRepositoryInterface::class => WalletRepository::class,
+    WalletProvisionerInterface::class => WalletProvisioner::class,
     TransferRepositoryInterface::class => TransferRepository::class,
     TransferAuthorizerInterface::class => TransferAuthorizerFactory::class,
     NotifierInterface::class => NotifierFactory::class,

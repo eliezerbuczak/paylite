@@ -32,7 +32,9 @@ mensageria, resiliência) e `Presentation/Http/` (controllers). As dependências
 módulos são acíclicas (User ← Wallet ← Transfer ← Notification, todos → Shared) e
 sempre pela interface pública do módulo dono — ex.: o caso de uso de transferência
 consome `WalletRepositoryInterface` do Wallet e o Notification reage ao evento
-`TransferCompleted` publicado pelo Transfer.
+`TransferCompleted` publicado pelo Transfer. Pela mesma regra, o cadastro de usuário
+provisiona a carteira inicial através de `WalletProvisionerInterface` (porta pública do
+Wallet), sem conhecer o model de persistência interno do módulo.
 
 ## Requisitos
 
