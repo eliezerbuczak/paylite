@@ -9,12 +9,12 @@ use App\Domain\Exception\InsufficientBalanceException;
 use App\Domain\Exception\InvalidAmountException;
 use App\Domain\Exception\SamePayerPayeeException;
 use App\Domain\Exception\TransferNotAuthorizedException;
-use App\Domain\Exception\UserNotFoundException;
 use App\Domain\Gateway\TransferAuthorizerInterface;
-use App\Domain\Repository\UserRepositoryInterface;
 use App\Domain\Repository\WalletRepositoryInterface;
 use App\DTO\TransferMoneyInput;
 use App\Event\TransferCompleted;
+use App\User\Domain\Exception\UserNotFoundException;
+use App\User\Domain\Repository\UserRepositoryInterface;
 use Psr\EventDispatcher\EventDispatcherInterface;
 
 /**

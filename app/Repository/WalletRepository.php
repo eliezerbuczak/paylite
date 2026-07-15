@@ -7,12 +7,12 @@ namespace App\Repository;
 use App\Domain\Entity\Deposit;
 use App\Domain\Entity\Transfer;
 use App\Domain\Exception\InsufficientBalanceException;
-use App\Domain\Exception\UserNotFoundException;
 use App\Domain\Repository\WalletRepositoryInterface;
 use App\Domain\ValueObject\Money;
 use App\Model\Deposit as DepositModel;
 use App\Model\Transfer as TransferModel;
 use App\Model\Wallet as WalletModel;
+use App\User\Domain\Exception\UserNotFoundException;
 use DateTimeImmutable;
 use Hyperf\DbConnection\Db;
 

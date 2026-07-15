@@ -5,10 +5,10 @@ declare(strict_types=1);
 namespace HyperfTest\Integration\Repository;
 
 use App\Domain\Exception\InsufficientBalanceException;
-use App\Domain\Exception\UserNotFoundException;
 use App\Domain\Repository\WalletRepositoryInterface;
 use App\Domain\ValueObject\Money;
 use App\Repository\WalletRepository;
+use App\User\Domain\Exception\UserNotFoundException;
 use Hyperf\Context\ApplicationContext;
 use Hyperf\DbConnection\Db;
 use HyperfTest\Factory\WalletFactory;

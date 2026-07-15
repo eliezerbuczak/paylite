@@ -5,9 +5,9 @@ declare(strict_types=1);
 namespace App\Service;
 
 use App\Domain\Gateway\TransferAuthorizerInterface;
-use App\Domain\Repository\UserRepositoryInterface;
 use App\Domain\Repository\WalletRepositoryInterface;
 use App\Shared\Infrastructure\Event\SafeEventDispatcher;
+use App\User\Domain\Repository\UserRepositoryInterface;
 use Hyperf\Logger\LoggerFactory;
 use Psr\Container\ContainerInterface;
 use Psr\EventDispatcher\EventDispatcherInterface;

@@ -7,8 +7,8 @@ namespace App\Domain\Repository;
 use App\Domain\Entity\Deposit;
 use App\Domain\Entity\Transfer;
 use App\Domain\Exception\InsufficientBalanceException;
-use App\Domain\Exception\UserNotFoundException;
 use App\Domain\ValueObject\Money;
+use App\User\Domain\Exception\UserNotFoundException;
 
 interface WalletRepositoryInterface
 {
